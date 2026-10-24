@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* انیمیشن باز شدن مه و تاری از مرکز به وضوح کامل (Fog/Mist Clear Reveal) */
+@keyframes mistClearReveal {
+  0% {
+    opacity: 0;
+    filter: blur(26px);
+    transform: scale(0.92) translateY(-10px);
+  }
+  45% {
+    opacity: 0.82;
+    filter: blur(10px);
+    transform: scale(0.985) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0px);
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes mistWavePulse {
+  0% {
+    opacity: 0.75;
+    transform: scale(0.75);
+    filter: blur(28px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+    filter: blur(4px);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 20s linear infinite;
+}
+
+.animate-mist-reveal {
+  transform-origin: top center;
+  animation: mistClearReveal 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity, filter;
+}
+
+.animate-mist-wave {
+  animation: mistWavePulse 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* تایپوگرافی دوزبانه (Outfit برای متون لاتین/اعداد انگلیسی و Vazirmatn برای متون فارسی) */
+.font-mono {
+  font-family: 'Outfit', 'Vazirmatn', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* اسکرول‌بار سفارشی متناسب با تم */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #04070D;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #00e5ff66;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #0284C7;
+}

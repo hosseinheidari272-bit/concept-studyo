@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استودیو خلاقیت دیجیتال | تجربه نسل جدید خدمات</title>
+    <!-- فونت وزیرمتن -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- نورهای پس‌زمینه برای تقویت افکت شیشه‌ای (Ambient Glows) -->
+    <div class="ambient-light light-1"></div>
+    <div class="ambient-light light-2"></div>
+
+    <div class="main-wrapper">
+        
+        <!-- نوار راهنمای بالای صفحه -->
+        <nav class="top-bar">
+            <div class="top-bar-right">
+                <span class="welcome-dot"></span>
+                <span class="welcome-text">خوش آمدید</span>
+            </div>
+            <div class="top-bar-left">
+                <span class="scroll-prompt">اسکرول کن تا از خدمات ما شگفت زده بشی.</span>
+                <svg class="scroll-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
+            </div>
+        </nav>
+
+        <!-- بخش هدر تعاملی (با الهام از Step Tracker & Recent.design) -->
+        <header class="hero-section">
+            <div class="tracker-card glass-panel">
+                
+                <!-- هدر داخلی کارت: وضعیت آنلاین و تاریخ -->
+                <div class="tracker-header">
+                    <div class="status-badge">
+                        <span class="pulse-green"></span>
+                        <span class="status-text">استودیو آنلاین</span>
+                    </div>
+                    <div class="date-badge">
+                        <span id="current-date">در حال بارگذاری...</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- کپسول روزهای هفته (Daily Streak) -->
+                <div class="streak-capsule" id="streak-days">
+                    <div class="day-item" data-day="6">
+                        <span class="day-name">ش</span>
+                        <span class="day-dot"></span>
+                    </div>
+                    <div class="day-item" data-day="0">
+                        <span class="day-name">ی</span>
+                        <span class="day-dot"></span>
+                    </div>
+                    <div class="day-item" data-day="1">
+                        <span class="day-name">د</span>
+                        <span class="day-dot"></span>
+                    </div>
+                    <div class="day-item" data-day="2">
+                        <span class="day-name">س</span>
+                        <span class="day-dot"></span>
+                    </div>
+                    <div class="day-item" data-day="3">
+                        <span class="day-name">چ</span>
+                        <span class="day-dot"></span>
+                    </div>
+                    <div class="day-item" data-day="4">
+                        <span class="day-name">پ</span>
+                        <span class="day-dot"></span>
+                    </div>
+                    <div class="day-item" data-day="5">
+                        <span class="day-name">ج</span>
+                        <span class="day-dot"></span>
+                    </div>
+                </div>
+
+                <!-- نشانگر آرک آبی نئونی و شمارنده -->
+                <div class="arc-wrapper">
+                    <svg class="arc-svg" viewBox="0 0 260 155">
+                        <defs>
+                            <!-- گرادینت نئونی آبی/فیروزه‌ای -->
+                            <linearGradient id="neonCyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#0051FF" />
+                                <stop offset="50%" stop-color="#00D4FF" />
+                                <stop offset="100%" stop-color="#00FFF0" />
+                            </linearGradient>
+                            <!-- فیلتر درخشش نئونی (Glow) -->
+                            <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="5" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+
+                        <!-- مسیر پس‌زمینه آرک (تیره شیشه‌ای) -->
+                        <path class="arc-bg" d="M 25 135 A 105 105 0 0 1 235 135" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14" stroke-linecap="round" />
+                        
+                        <!-- تیک‌های تزئینی داخل آرک -->
+                        <path class="arc-ticks" d="M 40 135 A 90 90 0 0 1 220 135" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-dasharray="2 10" stroke-linecap="round" />
+
+                        <!-- مسیر فعال آرک نئونی -->
+                        <path id="arc-progress" class="arc-active" d="M 25 135 A 105 105 0 0 1 235 135" fill="none" stroke="url(#neonCyanGrad)" stroke-width="14" stroke-linecap="round" filter="url(#neonGlow)" />
+                    </svg>
+
+                    <!-- محتوای متنی داخل آرک -->
+                    <div class="arc-readout">
+                        <span class="arc-label">پروژه‌ها و رندرهای موفق</span>
+                        <div class="counter-value" id="step-counter">۰</div>
+                        <div class="arc-sub-pill">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00F0FF" stroke-width="2.5">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                                <polyline points="17 6 23 6 23 12"></polyline>
+                            </svg>
+                            <span>+۹۸.۴٪ بازدهی خلاقانه</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- فوتر کوچک داخل کارت هدر -->
+                <div class="tracker-footer">
+                    <div class="metric-item">
+                        <span class="metric-title">کیفیت خروجی</span>
+                        <span class="metric-val">4K / Ultra</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="metric-item">
+                        <span class="metric-title">پشتیبانی</span>
+                        <span class="metric-val">۲۴/۷ هوشمند</span>
+                    </div>
+                    <div class="metric-divider"></div>
+                    <div class="metric-item">
+                        <span class="metric-title">سرعت تحویل</span>
+                        <span class="metric-val">فوق‌سریع</span>
+                    </div>
+                </div>
+
+            </div>
+        </header>
+
+        <!-- بخش خدمات استودیو -->
+        <section class="services-section" id="services">
+            <div class="section-head">
+                <h2 class="section-title">اکوسیستم خدمات ما</h2>
+                <p class="section-subtitle">ترکیب هنر دیجیتال، هوش مصنوعی و مهندسی نرم‌افزار در بالاترین سطح استاندارد جهانی</p>
+            </div>
+
+            <div class="services-grid">
+                
+                <!-- ۱. طراحی عکس -->
+                <div class="service-card glass-panel" data-index="01">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">01</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">طراحی عکس</h3>
+                        <p class="service-desc">خلق، روتوش حرفه‌ای و دستکاری خلاقانه تصاویر با جزئیات خیره‌کننده و نورپردازی سینمایی.</p>
+                    </div>
+                </div>
+
+                <!-- ۲. ساخت و ادیت ویدیو -->
+                <div class="service-card glass-panel" data-index="02">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="23 7 16 12 23 17 23 7"/>
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">02</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">ساخت و ادیت ویدیو</h3>
+                        <p class="service-desc">تدوین ریتمیک، اصلاح رنگ سینمایی، موشن‌گرافیک و جلوه‌های ویژه بصری برای جذب حداکثری مخاطب.</p>
+                    </div>
+                </div>
+
+                <!-- ۳. طراحی پست و بنر -->
+                <div class="service-card glass-panel" data-index="03">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">03</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">طراحی پست و بنر</h3>
+                        <p class="service-desc">طراحی گرافیک مدرن برای کمپین‌های تبلیغاتی، کاورها و اسلایدهای تعاملی با هویت بصری منحصربه‌فرد.</p>
+                    </div>
+                </div>
+
+                <!-- ۴. طراحی تصاویر تبلیغاتی محصولات -->
+                <div class="service-card glass-panel" data-index="04">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                                <line x1="12" y1="22.08" x2="12" y2="12"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">04</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">طراحی تصاویر تبلیغاتی محصولات</h3>
+                        <p class="service-desc">صحنه‌آرایی دیجیتال و رندرینگ استودیویی محصولات برای افزایش نرخ تبدیل و فروش آنلاین.</p>
+                    </div>
+                </div>
+
+                <!-- ۵. تولید محتوا برای شبکه اجتماعی -->
+                <div class="service-card glass-panel" data-index="05">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="18" cy="5" r="3"/>
+                                <circle cx="6" cy="12" r="3"/>
+                                <circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">05</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">تولید محتوا برای شبکه اجتماعی</h3>
+                        <p class="service-desc">تدوین استراتژی، سناریونویسی و تولید محتوای وایرال متناسب با الگوریتم‌های روز پلتفرم‌ها.</p>
+                    </div>
+                </div>
+
+                <!-- ۶. تبدیل متن به صدا و تولید محتوای صوتی -->
+                <div class="service-card glass-panel" data-index="06">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">06</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">تبدیل متن به صدا و تولید محتوای صوتی</h3>
+                        <p class="service-desc">نریشن و صداگذاری فوق‌طبیعی با لحن‌های متنوع، مهندسی صدا و تولید پادکست‌های تبلیغاتی.</p>
+                    </div>
+                </div>
+
+                <!-- ۷. طراحی سایت -->
+                <div class="service-card glass-panel" data-index="07">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="16 18 22 12 16 6"/>
+                                <polyline points="8 6 2 12 8 18"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">07</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">طراحی سایت</h3>
+                        <p class="service-desc">توسعه وب‌سایت‌های لوکس، فوق‌سریع و ریسپانسیو با رابط کاربری (UI/UX) مدرن و معماری استاندارد.</p>
+                    </div>
+                </div>
+
+                <!-- ۸. اتوماسیون و خودکار سازی کسب و کار ها -->
+                <div class="service-card glass-panel" data-index="08">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                                <rect x="9" y="9" width="6" height="6"/>
+                                <line x1="9" y1="1" x2="9" y2="4"/>
+                                <line x1="15" y1="1" x2="15" y2="4"/>
+                                <line x1="9" y1="20" x2="9" y2="23"/>
+                                <line x1="15" y1="20" x2="15" y2="23"/>
+                                <line x1="20" y1="9" x2="23" y2="9"/>
+                                <line x1="20" y1="14" x2="23" y2="14"/>
+                                <line x1="1" y1="9" x2="4" y2="9"/>
+                                <line x1="1" y1="14" x2="4" y2="14"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">08</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">اتوماسیون و خودکار سازی کسب و کار ها</h3>
+                        <p class="service-desc">اتصال هوشمند سیستم‌ها، ربات‌های پاسخگو و حذف فرآیندهای تکراری برای صرفه‌جویی در زمان و هزینه.</p>
+                    </div>
+                </div>
+
+                <!-- ۹. ساخت محصولات دیجیتال -->
+                <div class="service-card glass-panel" data-index="09">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <div class="icon-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                                <polyline points="2 17 12 22 22 17"/>
+                                <polyline points="2 12 12 17 22 12"/>
+                            </svg>
+                        </div>
+                        <span class="card-number">09</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="service-title">ساخت محصولات دیجیتال</h3>
+                        <p class="service-desc">ایده‌پردازی تا اجرای کامل قالب‌ها، پکیج‌های آموزشی، ابزارهای آنلاین و دارایی‌های دیجیتال قابل فروش.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
