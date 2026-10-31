@@ -1,5 +1,80 @@
 export type ServiceCategory = 'all' | 'design' | 'video_audio' | 'dev_automation';
 
+export type CoinDesignId = 'royal_crest' | 'cyber_hex' | 'solar_nova' | 'imperial_shield';
+
+export interface CoinPackageItem {
+  id: string;
+  coins: number;
+  coinAmount?: number;
+  priceToman: number;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  designId: CoinDesignId;
+  popular?: boolean;
+  isActive?: boolean;
+}
+
+export interface CoinSystemSettings {
+  enabled: boolean;
+  coinName: string;
+  coinSymbol?: string;
+  activeDesign: CoinDesignId;
+  unitPriceToman: number;
+  packages: CoinPackageItem[];
+}
+
+export interface PromoBannerSettings {
+  enabled: boolean;
+  text: string;
+  badgeText?: string;
+  stickyOnScroll: boolean;
+  linkText?: string;
+  linkUrl?: string;
+  linkHash?: string;
+}
+
+export type PaymentGatewayProvider = 'zarinpal' | 'zibal' | 'custom_link';
+
+export interface PaymentGatewaySettings {
+  onlineEnabled: boolean;
+  activeProvider: PaymentGatewayProvider;
+  sandboxMode: boolean;
+  zarinpalMerchantId: string;
+  zibalMerchantId: string;
+  customPaymentUrl: string;
+  cardToCardEnabled: boolean;
+  cardNumber: string;
+  shebaNumber: string;
+  cardHolderName: string;
+  bankName: string;
+  paymentInstruction: string;
+}
+
+export interface SiteSettings {
+  showPrices: boolean;
+  telegramUrl: string;
+  baleUrl: string;
+  coinSystem: CoinSystemSettings;
+  promoBanner: PromoBannerSettings;
+  paymentGateway: PaymentGatewaySettings;
+}
+
+export interface CoinTransaction {
+  id: string;
+  userId: string;
+  username: string;
+  userFullName: string;
+  type: 'mint_grant' | 'admin_grant' | 'purchase_topup' | 'topup_request' | 'order_payment' | 'admin_deduct';
+  amount: number;
+  balanceAfter?: number;
+  priceToman?: number;
+  description?: string;
+  note?: string;
+  status: 'completed' | 'pending' | 'rejected';
+  createdAt: string;
+}
+
 export interface ServiceItem {
   id: string;
   number: string;
@@ -24,6 +99,8 @@ export interface UserProfile {
   fullName: string;
   phone?: string;
   role: 'admin' | 'client';
+  coins?: number;
+  coinEnabled?: boolean;
   ordersCount?: number;
   totalSpent?: number;
   notes?: string;
@@ -39,6 +116,8 @@ export interface OrderItem {
   customerContact: string;
   urgency: 'normal' | 'express' | 'vip';
   calculatedPrice: number;
+  paidWithCoins?: boolean;
+  coinsSpent?: number;
   description?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   adminNote?: string;
@@ -57,6 +136,16 @@ export interface AdminStats {
   inProgressOrders: number;
   completedOrders: number;
   cancelledOrders: number;
+  totalMintedCoins?: number;
+  pendingTopupRequests?: number;
+}
+
+export interface ChatAttachment {
+  id: string;
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'file';
+  name: string;
+  size?: number;
 }
 
 export interface ChatMessage {
@@ -64,6 +153,7 @@ export interface ChatMessage {
   senderRole: 'admin' | 'user';
   senderName: string;
   text: string;
+  attachments?: ChatAttachment[];
   timestamp: string;
   read: boolean;
 }
@@ -82,4 +172,25 @@ export interface ChatThread {
   createdAt: string;
   updatedAt: string;
   messages: ChatMessage[];
+}
+
+export interface TestimonialItem {
+  id: string;
+  category: '3d' | 'branding' | 'web';
+  name: string;
+  role: string;
+  company: string;
+  service: string;
+  avatarColor?: string;
+  initials?: string;
+  outcome: string;
+  rating: number; // 1-5
+  date: string;
+  quote: string;
+  verified?: boolean;
+  status?: 'pending' | 'approved' | 'rejected';
+  userId?: string;
+  orderId?: string;
+  trackingCode?: string;
+  createdAt?: string;
 }

@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ChatThread, ChatMessage } from '../types';
+import { ChatThread, ChatAttachment } from '../types';
 import { toPersianDigits } from '../utils/persianDate';
+import {
+  CHAT_ACCEPT_TYPES,
+  ChatMessageAttachments,
+  PendingAttachmentsPreview,
+  VoiceRecorderButton,
+  uploadChatAttachmentFile,
+} from './ChatAttachmentView';
 
 interface UserChatModalProps {
   isOpen: boolean;
@@ -22,7 +29,10 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
   const [selectedThread, setSelectedThread] = useState<ChatThread | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // حالت فرم درخواست جدید
   const [isNewRequestMode, setIsNewRequestMode] = useState(false);
@@ -34,12 +44,43 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
   const [newMessageText, setNewMessageText] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const newReqFileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
   const prevThreadIdRef = useRef<string | null>(null);
   const prevMessagesCountRef = useRef<number>(0);
+
+  // آپلود فایل تصویر، ویدیو، ویس یا فایل پروژه به سرور
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    e.target.value = '';
+
+    setIsUploadingMedia(true);
+    setErrorMsg('');
+
+    try {
+      const result = await uploadChatAttachmentFile(file, token);
+      if (result.attachment) {
+        setPendingAttachments((prev) => [...prev, result.attachment!]);
+      } else if (result.error) {
+        setErrorMsg(result.error);
+      }
+    } catch {
+      setErrorMsg('خطا در بارگذاری فایل پیوست');
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const handleRemoveAttachment = (attId: string) => {
+    setPendingAttachments((prev) => prev.filter((a) => a.id !== attId));
+  };
 
   // واکشی لیست گفت‌وگوها
   const fetchThreads = async () => {
@@ -185,9 +226,10 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
   // ارسال پیام جدید در گفت‌وگوی جاری
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedThread || !replyText.trim() || isSending) return;
+    if (!selectedThread || (!replyText.trim() && pendingAttachments.length === 0) || isSending) return;
 
     setIsSending(true);
+    setErrorMsg('');
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -195,17 +237,24 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
       const res = await fetch(`/api/chat/threads/${selectedThread.id}/messages`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ text: replyText.trim() }),
+        body: JSON.stringify({
+          text: replyText.trim(),
+          attachments: pendingAttachments,
+        }),
       });
 
       if (res.ok) {
         const data = await res.json();
         setSelectedThread(data.thread);
         setReplyText('');
+        setPendingAttachments([]);
         isNearBottomRef.current = true;
         setShowScrollBottomBtn(false);
         fetchThreads();
         setTimeout(() => scrollToBottom('smooth'), 50);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setErrorMsg(err.error || 'خطا در ارسال پیام');
       }
     } catch {
       setErrorMsg('خطا در ارسال پیام. لطفاً دوباره تلاش کنید.');
@@ -217,8 +266,13 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
   // ایجاد درخواست یا گفت‌وگوی جدید به ادمین
   const handleCreateNewRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCustomerName || !newCustomerContact || !newMessageText.trim() || isSending) {
-      setErrorMsg('لطفاً تمام فیلدهای ستاره‌دار را تکمیل فرمایید');
+    if (
+      !newCustomerName ||
+      !newCustomerContact ||
+      (!newMessageText.trim() && pendingAttachments.length === 0) ||
+      isSending
+    ) {
+      setErrorMsg('لطفاً نام، شماره تماس و متن پیام یا فایل پیوست را وارد فرمایید');
       return;
     }
 
@@ -239,6 +293,7 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
           orderId: initialOrderId,
           orderTitle: initialOrderTitle,
           initialMessage: newMessageText.trim(),
+          attachments: pendingAttachments,
         }),
       });
 
@@ -246,6 +301,7 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
         const data = await res.json();
         setIsNewRequestMode(false);
         setNewMessageText('');
+        setPendingAttachments([]);
         fetchThreads();
         setSelectedThread(data.thread);
       } else {
@@ -414,17 +470,52 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  متن پیام شما برای مدیریت <span className="text-cyan-400">*</span>
-                </label>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-300">
+                    متن پیام، ویس یا فایل پروژه <span className="text-cyan-400">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <VoiceRecorderButton
+                      token={token}
+                      disabled={isUploadingMedia}
+                      onUploaded={(att) => setPendingAttachments((prev) => [...prev, att])}
+                      onError={(msg) => setErrorMsg(msg)}
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingMedia}
+                      onClick={() => newReqFileInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-xs font-bold text-cyan-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                      </svg>
+                      <span>{isUploadingMedia ? 'در حال آپلود...' : '+ پیوست فایل / تصویر / ویدیو'}</span>
+                    </button>
+                  </div>
+                  <input
+                    ref={newReqFileInputRef}
+                    type="file"
+                    accept={CHAT_ACCEPT_TYPES}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                </div>
                 <textarea
-                  required
                   rows={4}
                   value={newMessageText}
                   onChange={(e) => setNewMessageText(e.target.value)}
-                  placeholder="لطفاً جزئیات سوال یا درخواست خود را اینجا بنویسید..."
+                  placeholder="لطفاً جزئیات سوال یا درخواست خود را بنویسید (امکان ضبط ویس مستقیم یا پیوست فایل، عکس و ویدیو فعال است)..."
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none resize-none transition-colors"
                 />
+
+                {/* پیش‌نمایش فایل‌ها و ویس‌های پیوست‌شده در فرم درخواست جدید */}
+                <div className="mt-2.5">
+                  <PendingAttachmentsPreview
+                    attachments={pendingAttachments}
+                    onRemove={handleRemoveAttachment}
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -439,8 +530,8 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                 )}
                 <button
                   type="submit"
-                  disabled={isSending}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all flex items-center gap-2"
+                  disabled={isSending || isUploadingMedia}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 text-slate-950 font-black text-xs shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all flex items-center gap-2"
                 >
                   {isSending ? (
                     <span>در حال ارسال...</span>
@@ -528,13 +619,20 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                         </div>
 
                         <div
-                          className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${
+                          className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed space-y-2 ${
                             isAdmin
                               ? 'bg-[#121E33] border border-cyan-500/30 text-cyan-50 shadow-[0_4px_15px_rgba(0,180,255,0.08)] rounded-tr-none'
                               : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-tl-none'
                           }`}
                         >
-                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                          {msg.attachments && msg.attachments.length > 0 && (
+                            <ChatMessageAttachments
+                              attachments={msg.attachments}
+                              onPreviewImage={(url) => setPreviewImageUrl(url)}
+                              isDarkBubble={true}
+                            />
+                          )}
+                          {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
                         </div>
                       </div>
                     );
@@ -560,28 +658,66 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                 )}
               </div>
 
-              {/* کادر ارسال پاسخ */}
+              {/* کادر ارسال پاسخ همراه با دکمه ضبط ویس و پیوست فایل/تصویر/ویدیو */}
               {selectedThread.status === 'open' ? (
-                <form onSubmit={handleSendMessage} className="pt-2 border-t border-slate-800 flex gap-2">
-                  <input
-                    type="text"
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    placeholder="پاسخ خود را برای مدیریت بنویسید..."
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <PendingAttachmentsPreview
+                    attachments={pendingAttachments}
+                    onRemove={handleRemoveAttachment}
                   />
-                  <button
-                    type="submit"
-                    disabled={isSending || !replyText.trim()}
-                    className="px-4 sm:px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5"
-                  >
-                    <span>ارسال</span>
-                    <svg className="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </button>
-                </form>
+
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-1.5 sm:gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={CHAT_ACCEPT_TYPES}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingMedia}
+                      onClick={() => fileInputRef.current?.click()}
+                      title="ارسال فایل، تصویر یا ویدیو"
+                      aria-label="ارسال فایل، تصویر یا ویدیو"
+                      className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-400 hover:text-cyan-300 transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      {isUploadingMedia ? (
+                        <span className="w-5 h-5 block border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                        </svg>
+                      )}
+                    </button>
+
+                    <VoiceRecorderButton
+                      token={token}
+                      disabled={isUploadingMedia}
+                      onUploaded={(att) => setPendingAttachments((prev) => [...prev, att])}
+                      onError={(msg) => setErrorMsg(msg)}
+                    />
+
+                    <input
+                      type="text"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="پیام بنویسید یا ویس و فایل ارسال کنید..."
+                      className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSending || isUploadingMedia || (!replyText.trim() && pendingAttachments.length === 0)}
+                      className="px-4 sm:px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5"
+                    >
+                      <span>ارسال</span>
+                      <svg className="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                  </form>
+                </div>
               ) : (
                 <div className="p-3 text-center rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
                   این گفت‌وگو توسط مدیریت به عنوان پایان‌یافته علامت‌گذاری شده است. برای طرح موضوع جدید، درخواست جدید ثبت نمایید.
@@ -680,6 +816,27 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* لایت‌باکس بزرگ‌نمایی تصویر در چت */}
+      {previewImageUrl && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <img
+            src={previewImageUrl}
+            alt="پیش‌نمایش"
+            className="max-w-full max-h-[90vh] rounded-2xl border border-slate-700 shadow-2xl object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setPreviewImageUrl(null)}
+            className="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-900 border border-slate-700 text-white flex items-center justify-center text-lg"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 };

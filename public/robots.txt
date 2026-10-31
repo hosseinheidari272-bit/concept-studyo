@@ -1,0 +1,20 @@
+# robots.txt - استودیو دیزاین کانسپت (Concept Design Studio)
+# بهینه‌سازی شده برای خزنده‌های گوگل (Googlebot)، بینگ و موتورهای جستجوی بومی و بین‌المللی
+
+User-agent: *
+Allow: /
+Allow: /fonts/
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /*mode=admin*
+
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /uploads/
+
+User-agent: Googlebot-Image
+Allow: /
+
+# نقشه سایت (XML Sitemap)
+Sitemap: https://concept-studio.ir/sitemap.xml

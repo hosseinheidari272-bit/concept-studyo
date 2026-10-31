@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { ServiceItem } from '../types';
+import { ServiceItem, CoinSystemSettings } from '../types';
 import { formatPersianPrice, toPersianDigits } from '../utils/persianDate';
 import { useAuth } from '../context/AuthContext';
+import { CoinEmblem } from './CoinBadge';
 
 interface OrderModalProps {
   initialService: ServiceItem | null;
   services: ServiceItem[];
+  showPrices?: boolean;
+  coinSystem?: CoinSystemSettings;
+  onOpenUserPanel?: () => void;
   onClose: () => void;
   onOpenChatForOrder?: (orderId: string, orderTitle: string) => void;
 }
@@ -13,10 +17,13 @@ interface OrderModalProps {
 export const OrderModal: React.FC<OrderModalProps> = ({
   initialService,
   services,
+  showPrices = true,
+  coinSystem,
+  onOpenUserPanel,
   onClose,
   onOpenChatForOrder,
 }) => {
-  const { user, token } = useAuth();
+  const { user, token, refreshUser, openAuthModal } = useAuth();
 
   const [selectedServiceId, setSelectedServiceId] = useState<string>(
     initialService?.id || (services.length > 0 ? services[0].id : '')
@@ -25,6 +32,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [contact, setContact] = useState(user?.phone || user?.username || '');
   const [projectDescription, setProjectDescription] = useState('');
   const [urgency, setUrgency] = useState<'normal' | 'express' | 'vip'>('normal');
+  const [payWithCoins, setPayWithCoins] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [trackingCode, setTrackingCode] = useState('');
@@ -51,10 +59,19 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   const calculatedPrice = currentService ? Math.round(currentService.startingPrice * getMultiplier()) : 0;
+  const unitCoinPrice = Math.max(1000, coinSystem?.unitPriceToman || 500000);
+  const requiredCoins = Math.max(1, Math.ceil(calculatedPrice / unitCoinPrice));
+  const userCoins = user?.coins || 0;
+  const hasEnoughCoins = userCoins >= requiredCoins;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !contact.trim()) return;
+
+    if (payWithCoins && !user) {
+      openAuthModal('login');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorMessage('');
@@ -78,6 +95,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           urgency,
           calculatedPrice,
           description: projectDescription.trim(),
+          payWithCoins: Boolean(coinSystem?.enabled && payWithCoins),
         }),
       });
 
@@ -85,6 +103,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       if (res.ok && data.order) {
         setTrackingCode(data.order.trackingCode);
         setIsSubmitted(true);
+        if (payWithCoins) {
+          await refreshUser();
+        }
       } else {
         setErrorMessage(data.error || 'خطا در ثبت سفارش');
       }
@@ -309,6 +330,85 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 />
               </div>
 
+              {/* گزینه پرداخت با کوین استودیو (زمانی که ضرب سکه توسط ادمین فعال شده باشد) */}
+              {coinSystem?.enabled && (
+                <div className="p-3.5 rounded-2xl bg-[#07090E] border-2 border-amber-400/50 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <CoinEmblem design={coinSystem.activeDesign || 'royal_crest'} size="md" withDarkFrame={false} />
+                      <div>
+                        <span className="text-xs font-black text-amber-300 block">
+                          پرداخت و ثبت سفارش با {coinSystem.coinName || 'کوین استودیو'}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block">
+                          معادل این سفارش: <strong className="text-white">{toPersianDigits(requiredCoins)} کوین</strong>{' '}
+                          | موجودی شما: <strong className="text-amber-300">{toPersianDigits(userCoins)} کوین</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPayWithCoins(!payWithCoins)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all shrink-0 ${
+                        payWithCoins
+                          ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-[0_0_15px_rgba(250,204,21,0.4)]'
+                          : 'bg-slate-900 text-amber-300 border-amber-400/40 hover:border-amber-400'
+                      }`}
+                    >
+                      {payWithCoins ? '✓ انتخاب‌شده با کوین' : 'پرداخت با کوین'}
+                    </button>
+                  </div>
+
+                  {payWithCoins && !hasEnoughCoins && (
+                    <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/40 flex items-center justify-between gap-2 text-[11px] text-rose-200">
+                      <span>موجودی کوین شما برای این سفارش کافی نیست.</span>
+                      {onOpenUserPanel && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenUserPanel();
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-black whitespace-nowrap"
+                        >
+                          + افزودن کوین در پنل کاربری
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* پروتکل اجرایی استودیو برای این سفارش */}
+              <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs space-y-2">
+                <div className="flex items-center justify-between text-cyan-400 font-black text-[11px]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                    <span>پروتکل اجرای تیز پروژه شما — ما آماده خلق اثری فراتر از انتظارتان هستیم ⚡</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">بررسی فوری</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] text-slate-300">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-red-400 font-bold">⚡</span>
+                    <span>فرمول پرداخت مرحله‌ای (۵۰٪ شروع / ۵۰٪ تایید نهایی)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-cyan-400 font-bold">✓</span>
+                    <span>۲ دور کالیبراسیون و بازبینی تخصصی رایگان</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-cyan-400 font-bold">✓</span>
+                    <span>انتقال ۱۰۰٪ مالکیت فایل لایه‌باز و سورس کامل</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-cyan-400 font-bold">✓</span>
+                    <span>حفظ کامل اسرار تجاری و ایده شما (NDA)</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             {/* فوتر ثابت */}
@@ -316,16 +416,28 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               <div>
                 <span className="text-[10px] sm:text-[11px] text-slate-400 block">برآورد اولیه سرمایه‌گذاری:</span>
                 <span className="text-sm sm:text-base font-black text-white">
-                  {formatPersianPrice(calculatedPrice)}
+                  {payWithCoins && coinSystem?.enabled
+                    ? `${toPersianDigits(requiredCoins)} ${coinSystem.coinName || 'کوین'} (${formatPersianPrice(calculatedPrice)})`
+                    : showPrices
+                    ? formatPersianPrice(calculatedPrice)
+                    : 'توافقی و پس از بررسی نیازمندی‌ها'}
                 </span>
               </div>
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs sm:text-sm shadow-[0_0_20px_rgba(0,210,255,0.4)] transition-all transform active:scale-95 disabled:opacity-50"
+                disabled={isSubmitting || (payWithCoins && !hasEnoughCoins)}
+                className={`px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all transform active:scale-95 disabled:opacity-50 ${
+                  payWithCoins && coinSystem?.enabled
+                    ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 shadow-[0_0_20px_rgba(250,204,21,0.45)]'
+                    : 'bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(0,210,255,0.4)]'
+                }`}
               >
-                {isSubmitting ? 'در حال ثبت...' : 'تایید و ارسال درخواست'}
+                {isSubmitting
+                  ? 'در حال ثبت...'
+                  : payWithCoins && coinSystem?.enabled
+                  ? `پرداخت ${toPersianDigits(requiredCoins)} کوین و ثبت سفارش`
+                  : 'تایید و ارسال درخواست'}
               </button>
             </div>
           </form>

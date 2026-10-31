@@ -61,15 +61,6 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  // پر کردن سریع برای تست مشخصات ادمین
-  const fillAdminCredentials = () => {
-    setActiveTab('login');
-    setUsername('admin');
-    setPassword('admin123');
-    setErrorMsg('');
-    setInfoMsg('مشخصات ادمین بارگذاری شد. روی دکمه ورود کلیک کنید.');
-  };
-
   return (
     <div
       role="dialog"
@@ -163,7 +154,7 @@ export const AuthModal: React.FC = () => {
                   خوش‌آمدید! لطفاً وارد شوید
                 </h3>
                 <p className="text-xs text-slate-400">
-                  برای دسترسی به سوابق سفارشات یا پنل مدیریت، مشخصات خود را وارد کنید.
+                  برای دسترسی به سوابق سفارشات یا حساب کاربری خود، مشخصات را وارد کنید.
                 </p>
               </div>
 
@@ -174,7 +165,8 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="admin، 0912... یا نام کاربری شما"
+                  autoComplete="username"
+                  placeholder="0912... یا نام کاربری شما"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
@@ -188,6 +180,7 @@ export const AuthModal: React.FC = () => {
                 <input
                   type="password"
                   required
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -195,19 +188,10 @@ export const AuthModal: React.FC = () => {
                 />
               </div>
 
-              {/* تراشه ورود تست ادمین */}
-              <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={fillAdminCredentials}
-                  className="w-full py-1.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800/80 border border-slate-800 hover:border-cyan-500/40 text-[11px] font-mono text-cyan-300 flex items-center justify-between transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                    ورود سریع ادمین (admin / admin123)
-                  </span>
-                  <span className="text-[10px] text-slate-400">کلیک برای درج خودکار ↵</span>
-                </button>
+              {/* یادآوری ماندگاری خودکار نشست در مرورگر */}
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-[11px] text-cyan-300">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0 shadow-[0_0_8px_rgba(0,229,255,0.7)]" />
+                <span>حساب شما در این مرورگر به خاطر سپرده می‌شود و در مراجعات بعدی نیازی به ورود مجدد نخواهد بود.</span>
               </div>
 
               <button
@@ -299,6 +283,12 @@ export const AuthModal: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
                 />
+              </div>
+
+              {/* یادآوری ماندگاری خودکار نشست در مرورگر */}
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-[11px] text-cyan-300">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0 shadow-[0_0_8px_rgba(0,229,255,0.7)]" />
+                <span>حساب شما بلافاصله فعال شده و ورود در این مرورگر پایدار می‌ماند.</span>
               </div>
 
               <button

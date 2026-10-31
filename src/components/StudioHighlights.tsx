@@ -1,140 +1,271 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ScrollReveal } from './ScrollReveal';
 import { useTheme } from '../context/ThemeContext';
+import {
+  AnomalyVariant,
+  AnomalyVariantId,
+  pickNonRepeatingAnomaly,
+  pickInterruptWordIndex,
+  computeIrregularDelayMs,
+  nextSeededRandom,
+} from '../utils/patternInterruptEngine';
 
 export const StudioHighlights: React.FC = () => {
   const { isLight } = useTheme();
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [isInView, setIsInView] = useState(false);
+  const [activeCardIdx, setActiveCardIdx] = useState<number | null>(null);
+  const [activeAnomaly, setActiveAnomaly] = useState<AnomalyVariant | null>(null);
+  const [activeWordIdx, setActiveWordIdx] = useState<number>(-1);
+  const lastAnomalyIdRef = useRef<AnomalyVariantId | null>(null);
 
   const highlights = [
     {
       num: '۰۱',
-      title: 'خروجی استاندارد سینمایی (4K/8K)',
-      desc: 'رندرینگ دقیق و اصلاح رنگ سینمایی (DaVinci)؛ یعنی خروجی تصویر و ویدیوی شما مثل فیلم‌های روز دنیا، شفاف، زنده و چشم‌نواز می‌شود تا در هر صفحه‌نمایشی بدرخشد.',
-      detail: 'کیفیت بین‌المللی',
+      title: 'خروجی استاندارد سینمایی (تیزرسازی 4K و 8K)',
+      desc: 'ما با وسواس میلی‌متری روی نورپردازی، بافت متریال و داینامیک تصویر کار می‌کنیم تا هر فریم، قدرت و اصالت واقعی برند شما را در ذهن مخاطب حک کند.',
+      detail: 'وسواس در مهندسی تصویر',
+      spark: 'ما عاشق خلق صحنه‌هایی هستیم که مخاطب را میخکوب می‌کند',
     },
     {
       num: '۰۲',
-      title: 'تحویل سریع با کیفیت استاندارد و بالا',
-      desc: 'فرآیند تولید بهینه و چابک؛ یعنی بدون اینکه کیفیت و ظرافت کار ذره‌ای افت کند، پروژه شما با سرعت بالا و رعایت تمام استانداردهای حرفه‌ای آماده می‌شود.',
-      detail: 'سرعت و کیفیت برتر',
+      title: 'سرعت فوق‌العاده بالا و سریع در تحویل با حفظ و رعایت کیفیت',
+      desc: 'وقتی ایده شما وارد پایپ‌لاین تولید استودیو می‌شود، با ریتم تند و سرعتی استثنایی خروجی را با حفظ تمامی استانداردهای کیفی، بصری و مهندسی در کوتاه‌ترین زمان تحویل می‌گیرید.',
+      detail: 'سرعت خارق‌العاده + کیفیت دست‌نخورده',
+      spark: 'ما با تمام اشتیاق و انرژی پروژه شما را با نهایت سرعت و بالاترین استاندارد تحویل می‌دهیم',
     },
     {
       num: '۰۳',
-      title: 'ارائه کامل فایل‌های لایه‌باز و سورس',
-      desc: 'تحویل تمامی فایل‌های اصلی (PSD, AI, AfterEffects, کدهای سایت)؛ یعنی شما مالک ۱۰۰٪ پروژه هستید و هر زمان بخواهید می‌توانید متن، عکس یا اجزای آن را تغییر دهید.',
-      detail: 'مالکیت بی‌قیدوشرط',
+      title: 'تحویل کامل فایل‌های لایه‌باز و سورس مهندسی‌شده',
+      desc: 'از فایل‌های سه‌بعدی و پروژه‌های افترضفکتس تا سورس کدهای تمیز وب؛ تمام دارایی‌های خلق‌شده با ساختار استاندارد و کاملاً باز در اختیار شماست.',
+      detail: 'استقلال کامل فنی',
+      spark: 'معماری تمیز و بدون هیچ وابستگی پنهان',
     },
     {
       num: '۰۴',
-      title: 'مشاوره و پشتیبانی مستقیم مدیریت',
-      desc: 'جلسات بازخوانی و رفع اصلاحات مستمر؛ یعنی از لحظه ایده‌پردازی تا تحویل نهایی، مستقیم و بدون واسطه کنارتان هستیم تا دقیقاً همان چیزی که می‌خواهید اجرا شود.',
-      detail: 'همراهی متعهدانه',
+      title: 'همراهی مستقیم و پرانرژی از ایده تا اوج فروش',
+      desc: 'شما با یک فرم سرد طرف نیستید؛ ما قدم‌به‌قدم کنار شماییم و با اشتیاق روی جزئیات کار می‌کنیم تا دقیقاً همان اثری خلق شود که از دیدنش هیجان‌زده شوید.',
+      detail: 'ارتباط مستقیم و تیز',
+      spark: 'انرژی ما تا لحظه شگفت‌زدگی شما متوقف نمی‌شود',
     },
   ];
 
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setIsInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.2 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+    const prefersReducedMotion =
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    let seed = (Date.now() ^ 0x9e3779b9) >>> 0;
+    let triggerTimer: ReturnType<typeof setTimeout>;
+    let resetTimer: ReturnType<typeof setTimeout>;
+
+    const scheduleSurprise = () => {
+      const step1 = nextSeededRandom(seed);
+      seed = step1.nextSeed;
+      const delay = computeIrregularDelayMs(
+        seed,
+        isMobileViewport ? 3200 : 1200,
+        isMobileViewport ? 7500 : 4000
+      );
+
+      triggerTimer = setTimeout(() => {
+        if (document.hidden) {
+          scheduleSurprise();
+          return;
+        }
+        const step2 = nextSeededRandom(seed);
+        seed = step2.nextSeed;
+        const chosenCard = Math.floor(step2.value * highlights.length);
+        const variant = pickNonRepeatingAnomaly(lastAnomalyIdRef.current, seed);
+        lastAnomalyIdRef.current = variant.id;
+
+        const wordIdx = pickInterruptWordIndex(highlights[chosenCard].desc, seed + 17);
+
+        setActiveCardIdx(chosenCard);
+        setActiveAnomaly(variant);
+        setActiveWordIdx(wordIdx);
+
+        resetTimer = setTimeout(() => {
+          setActiveCardIdx(null);
+          setActiveAnomaly(null);
+          setActiveWordIdx(-1);
+          scheduleSurprise();
+        }, variant.durationMs);
+      }, delay);
+    };
+
+    scheduleSurprise();
+
+    return () => {
+      clearTimeout(triggerTimer);
+      clearTimeout(resetTimer);
+    };
+  }, [isInView]);
+
+  const renderDescriptionWithInterrupt = (desc: string, isTriggered: boolean, wordClass: string) => {
+    if (!isTriggered || activeWordIdx < 0) {
+      return desc;
+    }
+    const words = desc.trim().split(/\s+/);
+    return words.map((word, idx) => (
+      <React.Fragment key={idx}>
+        <span className={idx === activeWordIdx ? `transition-all duration-200 ${wordClass}` : ''}>
+          {word}
+        </span>
+        {idx < words.length - 1 ? ' ' : ''}
+      </React.Fragment>
+    ));
+  };
+
   return (
-    <section id="highlights" aria-label="شاخص‌های تمایز استودیو" className="my-16 max-w-7xl mx-auto px-4 sm:px-6 scroll-mt-20">
-      {/* سرتیتر بخش با ظهور نرم و پویا */}
-      <ScrollReveal direction="down" distance={25}>
+    <section
+      ref={sectionRef}
+      id="highlights"
+      aria-label="شاخص‌های تخصص و تمایز استودیو"
+      className="my-10 sm:my-12 max-w-7xl mx-auto px-4 sm:px-6 scroll-mt-20"
+    >
+      <ScrollReveal direction="down" distance={20}>
         <div
-          className={`flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 pb-4 border-b transition-colors ${
+          className={`flex flex-col md:flex-row md:items-end justify-between gap-3 mb-6 pb-3.5 border-b transition-colors ${
             isLight ? 'border-slate-200' : 'border-slate-800/80'
           }`}
         >
           <div>
             <span
-              className={`text-xs font-bold tracking-wider block mb-1 ${
+              className={`text-xs font-black tracking-wider block mb-1 ${
                 isLight ? 'text-sky-600' : 'text-cyan-400'
               }`}
             >
-              استانداردهای بنیادین تولید
+              تخصص تیز · اشتیاق واقعی · اجرای مهندسی
             </span>
             <h2
               className={`text-xl sm:text-3xl font-black transition-colors ${
                 isLight ? 'text-slate-900' : 'text-white'
               }`}
             >
-              چرا برندهای پیشرو استودیو ما را برمی‌گزینند؟
+              مزایای رقابتی و استانداردهای کیفی استودیو دیزاین کانسپت
             </h2>
           </div>
           <p
-            className={`text-xs sm:text-sm max-w-md leading-relaxed ${
-              isLight ? 'text-slate-600' : 'text-slate-400'
+            className={`text-xs sm:text-sm max-w-md leading-relaxed font-medium ${
+              isLight ? 'text-slate-700' : 'text-slate-200'
             }`}
           >
-            ترکیب تخصص فنی پیشرفته با زبانی شفاف و همراهی قدم‌به‌قدم، تا خیالتان از سرعت اجرا و کیفیت نهایی کاملاً راحت باشد.
+            ما از ساختن کارهای شاخص لذت می‌بریم؛ وقتی برند شما با بالاترین استاندارد بصری و فنی وارد میدان می‌شود، مشتریان در کسری از ثانیه تفاوت را حس می‌کنند.
           </p>
         </div>
       </ScrollReveal>
 
-      {/* شبکه ۴ ستونه شاخص‌ها با ظهور پله‌ای و نرم در هر بار اسکرول */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {highlights.map((h, i) => (
-          <ScrollReveal
-            key={i}
-            delay={i * 0.12}
-            direction="down"
-            distance={28}
-          >
-            <div
-              className={`h-full p-6 rounded-2xl backdrop-blur-xl border transition-all duration-300 group flex flex-col justify-between ${
-                isLight
-                  ? 'bg-white/90 border-slate-200/90 hover:border-sky-400 shadow-[0_10px_30px_rgba(15,23,42,0.05)] hover:shadow-[0_18px_40px_rgba(2,132,199,0.12)]'
-                  : 'bg-[#090F1D]/80 border-slate-800/80 hover:border-cyan-500/40'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <span
-                    className={`text-xl font-black ${
-                      isLight ? 'text-sky-600' : 'text-cyan-400'
+        {highlights.map((h, i) => {
+          const isTriggered = activeCardIdx === i && activeAnomaly !== null;
+          return (
+            <ScrollReveal key={i} delay={i * 0.08} direction="down" distance={22}>
+              <div
+                data-cursor-interactive="true"
+                onMouseEnter={() => {
+                  const variant = pickNonRepeatingAnomaly(lastAnomalyIdRef.current, Date.now() + i * 97);
+                  lastAnomalyIdRef.current = variant.id;
+                  setActiveCardIdx(i);
+                  setActiveAnomaly(variant);
+                  setActiveWordIdx(pickInterruptWordIndex(h.desc, Date.now() + i));
+                }}
+                onMouseLeave={() => {
+                  setActiveCardIdx(null);
+                  setActiveAnomaly(null);
+                }}
+                className={`interactive-card-lift relative h-full p-5 sm:p-6 rounded-2xl backdrop-blur-xl border group flex flex-col justify-between ${
+                  isLight
+                    ? 'bg-white border-slate-200/95 hover:border-sky-400 shadow-[0_10px_30px_rgba(15,23,42,0.05)] hover:shadow-[0_18px_40px_rgba(2,132,199,0.14)]'
+                    : 'bg-[#090F1D]/95 border-slate-800/90 hover:border-cyan-400/50 shadow-[0_12px_35px_rgba(0,0,0,0.45)] hover:shadow-[0_18px_45px_rgba(0,229,255,0.14)]'
+                } ${isTriggered && activeAnomaly ? activeAnomaly.containerClass : ''}`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3.5">
+                    <span
+                      className={`text-xl font-black transition-all duration-200 ${
+                        isTriggered && activeAnomaly
+                          ? activeAnomaly.numberClass
+                          : isLight
+                          ? 'text-sky-600'
+                          : 'text-cyan-400'
+                      }`}
+                    >
+                      {h.num}
+                    </span>
+                    <span
+                      className={`text-[11px] font-bold transition-colors ${
+                        isTriggered
+                          ? 'text-red-500 font-black'
+                          : isLight
+                          ? 'text-slate-600 group-hover:text-sky-600'
+                          : 'text-slate-300 group-hover:text-cyan-300'
+                      }`}
+                    >
+                      {h.detail}
+                    </span>
+                  </div>
+
+                  <h3
+                    className={`text-base font-bold mb-2 transition-all duration-200 ${
+                      isTriggered && activeAnomaly
+                        ? activeAnomaly.titleClass
+                        : isLight
+                        ? 'text-slate-900 group-hover:text-sky-700'
+                        : 'text-white group-hover:text-cyan-200'
                     }`}
                   >
-                    {h.num}
-                  </span>
-                  <span
-                    className={`text-[11px] font-semibold transition-colors ${
-                      isLight
-                        ? 'text-slate-500 group-hover:text-sky-600'
-                        : 'text-slate-400 group-hover:text-cyan-300'
+                    {h.title}
+                  </h3>
+
+                  <p
+                    className={`text-xs sm:text-[13px] leading-relaxed font-normal ${
+                      isLight ? 'text-slate-700' : 'text-slate-200'
                     }`}
                   >
-                    {h.detail}
-                  </span>
+                    {renderDescriptionWithInterrupt(
+                      h.desc,
+                      isTriggered,
+                      activeAnomaly?.highlightWordClass || 'text-red-500 font-black'
+                    )}
+                  </p>
                 </div>
 
-                <h3
-                  className={`text-base font-bold mb-2.5 transition-colors ${
-                    isLight
-                      ? 'text-slate-900 group-hover:text-sky-700'
-                      : 'text-white group-hover:text-cyan-200'
+                <div
+                  className={`pt-3.5 mt-4 border-t flex items-center justify-between gap-1.5 text-[11px] font-bold transition-all ${
+                    isTriggered
+                      ? 'border-red-500/40 text-red-500 opacity-100'
+                      : isLight
+                      ? 'border-slate-200/80 text-sky-700 opacity-90 group-hover:opacity-100'
+                      : 'border-slate-800/80 text-cyan-300 opacity-90 group-hover:opacity-100'
                   }`}
                 >
-                  {h.title}
-                </h3>
-
-                <p
-                  className={`text-xs leading-relaxed font-normal ${
-                    isLight ? 'text-slate-600' : 'text-slate-300'
-                  }`}
-                >
-                  {h.desc}
-                </p>
+                  <span>{h.spark}</span>
+                  <span>⚡</span>
+                </div>
               </div>
-
-              <div
-                className={`pt-4 mt-4 border-t flex items-center gap-1.5 text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity ${
-                  isLight
-                    ? 'border-slate-100 text-sky-600'
-                    : 'border-slate-800/60 text-cyan-400'
-                }`}
-              >
-                <span>تضمین رسمی کیفیت</span>
-                <span>✓</span>
-              </div>
-            </div>
-          </ScrollReveal>
-        ))}
+            </ScrollReveal>
+          );
+        })}
       </div>
     </section>
   );

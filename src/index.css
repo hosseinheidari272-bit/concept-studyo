@@ -1,5 +1,46 @@
 @import "tailwindcss";
 
+/* فونت‌های محلی وزیرمتن (بارگذاری مستقیم از سرور خودتان بدون نیاز به اینترنت بین‌الملل) */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @keyframes spinSlow {
   from {
     transform: rotate(0deg);
@@ -102,3 +143,239 @@ html.light ::-webkit-scrollbar-thumb {
 html.light ::-webkit-scrollbar-thumb:hover {
   background: #0284C7;
 }
+
+/* ============================================================================
+   موتور شکست الگوی عادتی مغز (Non-Habitual Pattern Interrupt Animations)
+   طراحی‌شده برای تبدیل اسکرول ناخودآگاه به تمرکز آگاهانه و تیز
+   ============================================================================ */
+
+@keyframes piCrimsonSurgeKeyframes {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.048) translateY(-5px);
+  }
+  42% {
+    transform: scale(1.032) translateY(-3px);
+  }
+  70% {
+    transform: scale(1.042) translateY(-4px);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes piKineticTiltKeyframes {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  15% {
+    transform: scale(1.045) rotate(-1.6deg) translateY(-4px);
+  }
+  35% {
+    transform: scale(1.038) rotate(1.1deg) translateY(-3px);
+  }
+  65% {
+    transform: scale(1.035) rotate(-0.8deg) translateY(-3px);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes piHeartbeatJoltKeyframes {
+  0% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.058);
+  }
+  24% {
+    transform: scale(0.992);
+  }
+  38% {
+    transform: scale(1.048);
+  }
+  75% {
+    transform: scale(1.028);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes piGlitchSnapKeyframes {
+  0% {
+    transform: translateX(0) scale(1);
+  }
+  10% {
+    transform: translateX(-6px) scale(1.035);
+  }
+  20% {
+    transform: translateX(5px) scale(1.04);
+  }
+  30% {
+    transform: translateX(-2px) scale(1.035);
+  }
+  80% {
+    transform: translateX(0) scale(1.03);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes piLaserScanKeyframes {
+  0% {
+    top: -10%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+.pi-crimson-surge {
+  animation: piCrimsonSurgeKeyframes 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pi-kinetic-tilt {
+  animation: piKineticTiltKeyframes 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pi-heartbeat-jolt {
+  animation: piHeartbeatJoltKeyframes 2.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pi-spotlight-zoom {
+  transform: scale(1.046) translateY(-6px);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, border-color 0.2s ease;
+}
+
+.pi-glitch-snap {
+  animation: piGlitchSnapKeyframes 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pi-voltage-frame {
+  transform: scale(1.038);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pi-laser-sweep {
+  position: relative;
+  overflow: hidden;
+  transform: scale(1.035);
+}
+
+.pi-laser-sweep::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #ef4444, #ff003c, #ef4444, transparent);
+  box-shadow: 0 0 18px 3px rgba(239, 68, 68, 0.85);
+  pointer-events: none;
+  z-index: 40;
+  animation: piLaserScanKeyframes 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.pi-diagonal-slash {
+  background-image: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, transparent 45%, rgba(225, 29, 72, 0.1) 100%) !important;
+  transform: scale(1.035);
+}
+
+.pi-corner-ignite::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background-color: #ef4444;
+  box-shadow: 0 0 16px 6px rgba(239, 68, 68, 0.75);
+  z-index: 35;
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ============================================================================
+   میکرو-اینتراکشن‌های الهام‌گرفته از Aceternity UI (Spotlight, Shimmer, Soft Lift)
+   ============================================================================ */
+
+@keyframes aceternityShimmer {
+  0% {
+    transform: translateX(120%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(-220%) skewX(-18deg);
+  }
+}
+
+/* افکت درخشش نور روی دکمه‌های اصلی هنگام هاور */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.28),
+    transparent
+  );
+  transform: translateX(150%) skewX(-18deg);
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.btn-shimmer:hover::after {
+  transform: translateX(-250%) skewX(-18deg);
+}
+
+/* افکت هاور نرم و سه‌بعدی روی کارت‌های محصول و خدمات */
+.interactive-card-lift {
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .interactive-card-lift:hover {
+    transform: translateY(-6px) scale(1.008);
+  }
+}
+
+/* بهینه‌سازی اختصاصی موبایل: غیرفعال‌سازی انیمیشن‌های مداوم در موبایل یا حالت ذخیره باتری */
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .animate-spin-slow {
+    animation: none !important;
+  }
+  .pi-crimson-surge,
+  .pi-kinetic-tilt,
+  .pi-heartbeat-jolt,
+  .pi-glitch-snap {
+    animation-duration: 0.4s !important;
+  }
+  .pi-laser-sweep::after {
+    display: none !important;
+  }
+}
+
+

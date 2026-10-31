@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatThread, UserProfile, OrderItem } from '../types';
+import { ChatThread, ChatAttachment, UserProfile, OrderItem } from '../types';
 import { toPersianDigits } from '../utils/persianDate';
+import {
+  CHAT_ACCEPT_TYPES,
+  ChatMessageAttachments,
+  PendingAttachmentsPreview,
+  VoiceRecorderButton,
+  uploadChatAttachmentFile,
+} from './ChatAttachmentView';
 
 interface AdminChatTabProps {
   token: string;
@@ -27,6 +34,9 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // دیالوگ شروع گفت‌وگوی جدید
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
@@ -38,12 +48,38 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
   const [customSubject, setCustomSubject] = useState('');
   const [initialMessageText, setInitialMessageText] = useState('');
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
   const [showScrollBottomBtn, setShowScrollBottomBtn] = useState(false);
   const prevThreadIdRef = useRef<string | null>(null);
   const prevMessagesCountRef = useRef<number>(0);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    e.target.value = '';
+
+    setIsUploadingMedia(true);
+    try {
+      const result = await uploadChatAttachmentFile(file, token);
+      if (result.attachment) {
+        setPendingAttachments((prev) => [...prev, result.attachment!]);
+      } else if (result.error) {
+        showNotification('error', result.error);
+      }
+    } catch {
+      showNotification('error', 'خطا در بارگذاری فایل پیوست');
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const handleRemoveAttachment = (attId: string) => {
+    setPendingAttachments((prev) => prev.filter((a) => a.id !== attId));
+  };
 
   // واکشی گفت‌وگوها با جلوگیری از ری‌رندرهای تکراری در صورت عدم تغییر دیتا
   const fetchThreads = async () => {
@@ -195,7 +231,7 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
   // ارسال پیام
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedThreadId || !replyText.trim() || isSending) return;
+    if (!selectedThreadId || (!replyText.trim() && pendingAttachments.length === 0) || isSending) return;
 
     const textToSend = replyText.trim();
     setIsSending(true);
@@ -206,11 +242,15 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ text: textToSend }),
+        body: JSON.stringify({
+          text: textToSend,
+          attachments: pendingAttachments,
+        }),
       });
 
       if (res.ok) {
         setReplyText('');
+        setPendingAttachments([]);
         // هنگام ارسال پیام توسط خود ادمین، صفحه به پایین هدایت شود
         isNearBottomRef.current = true;
         setShowScrollBottomBtn(false);
@@ -535,13 +575,20 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
                       </div>
 
                       <div
-                        className={`max-w-[80%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${
+                        className={`max-w-[80%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed space-y-2 ${
                           isAdmin
                             ? 'bg-cyan-600 text-slate-950 font-medium rounded-tl-none shadow-[0_4px_15px_rgba(0,229,255,0.15)]'
                             : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-tr-none'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <ChatMessageAttachments
+                            attachments={msg.attachments}
+                            onPreviewImage={(url) => setPreviewImageUrl(url)}
+                            isDarkBubble={!isAdmin}
+                          />
+                        )}
+                        {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
                       </div>
                     </div>
                   );
@@ -591,27 +638,65 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
               </button>
             </div>
 
-            {/* کادر ارسال پیام */}
-            <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-[#0B111E] border-t border-slate-800 flex gap-2">
-              <input
-                type="text"
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="متن پاسخ مدیریت به مشتری..."
-                className="flex-1 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+            {/* کادر ارسال پیام همراه با ضبط ویس و پیوست فایل/تصویر/ویدیو */}
+            <div className="p-3 sm:p-4 bg-[#0B111E] border-t border-slate-800 space-y-2">
+              <PendingAttachmentsPreview
+                attachments={pendingAttachments}
+                onRemove={handleRemoveAttachment}
               />
-              <button
-                type="submit"
-                disabled={isSending || !replyText.trim()}
-                className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-black text-xs transition-all shrink-0 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,255,0.25)]"
-              >
-                <span>ارسال پاسخ</span>
-                <svg className="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </button>
-            </form>
+
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={CHAT_ACCEPT_TYPES}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  disabled={isUploadingMedia}
+                  onClick={() => fileInputRef.current?.click()}
+                  title="پیوست فایل، تصویر یا ویدیو"
+                  aria-label="پیوست فایل، تصویر یا ویدیو"
+                  className="p-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-400 hover:text-cyan-300 transition-colors shrink-0 disabled:opacity-50"
+                >
+                  {isUploadingMedia ? (
+                    <span className="w-5 h-5 block border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                    </svg>
+                  )}
+                </button>
+
+                <VoiceRecorderButton
+                  token={token}
+                  disabled={isUploadingMedia}
+                  onUploaded={(att) => setPendingAttachments((prev) => [...prev, att])}
+                  onError={(msg) => showNotification('error', msg)}
+                />
+
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="متن پاسخ مدیریت به مشتری (یا ارسال ویس، فایل، تصویر و ویدیو)..."
+                  className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={isSending || isUploadingMedia || (!replyText.trim() && pendingAttachments.length === 0)}
+                  className="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-black text-xs transition-all shrink-0 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,229,255,0.25)]"
+                >
+                  <span>ارسال پاسخ</span>
+                  <svg className="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+              </form>
+            </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -801,6 +886,27 @@ export const AdminChatTab: React.FC<AdminChatTabProps> = ({
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* پیش‌نمایش تمام‌صفحه تصویر در چت ادمین */}
+      {previewImageUrl && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <img
+            src={previewImageUrl}
+            alt="پیش‌نمایش"
+            className="max-w-full max-h-[90vh] rounded-2xl border border-slate-700 shadow-2xl object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setPreviewImageUrl(null)}
+            className="absolute top-5 left-5 w-10 h-10 rounded-full bg-slate-900 border border-slate-700 text-white flex items-center justify-center text-lg"
+          >
+            ✕
+          </button>
         </div>
       )}
     </div>

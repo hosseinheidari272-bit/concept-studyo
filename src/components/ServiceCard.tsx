@@ -1,22 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ServiceItem } from '../types';
 import { formatPersianPrice, calculateDiscount } from '../utils/persianDate';
 import { useTheme } from '../context/ThemeContext';
+import { AnomalyVariant, pickInterruptWordIndex } from '../utils/patternInterruptEngine';
 
 interface ServiceCardProps {
   service: ServiceItem;
+  showPrices?: boolean;
+  activeAnomaly?: AnomalyVariant | null;
+  anomalySeed?: number;
   onSelect: (service: ServiceItem) => void;
   onOpenChatWithService?: (service: ServiceItem) => void;
 }
 
-export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onOpenChatWithService }) => {
+export const ServiceCard: React.FC<ServiceCardProps> = ({
+  service,
+  showPrices = true,
+  activeAnomaly = null,
+  anomalySeed = 1,
+  onSelect,
+  onOpenChatWithService,
+}) => {
   const { isLight } = useTheme();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
+  const [spotlightPos, setSpotlightPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setSpotlightPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const hasDiscount = (service.discountPercent || 0) > 0;
   const discountedPrice = hasDiscount
     ? calculateDiscount(service.startingPrice, service.discountPercent!)
     : service.startingPrice;
+
+  const isInterrupted = activeAnomaly !== null && activeAnomaly !== undefined;
+  const descWords = service.description.trim().split(/\s+/);
+  const interruptedWordIdx = isInterrupted
+    ? pickInterruptWordIndex(service.description, anomalySeed)
+    : -1;
 
   // رندر گرافیک اختصاصی و غنی برای هر یک از ۱۰ خدمت (اصل ۵: محتوای بصری باکیفیت)
   const renderArtBanner = () => {
@@ -228,13 +257,31 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
 
   return (
     <article
-      className={`relative h-full rounded-3xl border p-5 sm:p-6 flex flex-col justify-between overflow-hidden transition-all duration-300 group ${
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      data-cursor-interactive="true"
+      data-anomaly-active={isInterrupted ? activeAnomaly?.id : undefined}
+      className={`interactive-card-lift relative h-full rounded-3xl border p-5 sm:p-6 flex flex-col justify-between overflow-hidden group ${
         isLight
-          ? 'bg-white/95 border-slate-200/90 hover:border-sky-400 shadow-[0_12px_35px_rgba(15,23,42,0.06)] hover:shadow-[0_20px_50px_rgba(2,132,199,0.14)]'
-          : 'bg-[#090F1C]/90 border-slate-800/80 hover:border-cyan-500/40 shadow-[0_15px_40px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_50px_rgba(0,180,255,0.14)]'
-      }`}
+          ? 'bg-white border-slate-200/95 hover:border-sky-400 shadow-[0_12px_35px_rgba(15,23,42,0.06)] hover:shadow-[0_22px_50px_rgba(2,132,199,0.16)]'
+          : 'bg-[#080E1B]/95 border-slate-800/90 hover:border-cyan-400/50 shadow-[0_15px_40px_rgba(0,0,0,0.55)] hover:shadow-[0_22px_55px_rgba(0,229,255,0.16)]'
+      } ${isInterrupted ? activeAnomaly?.containerClass || '' : ''}`}
     >
-      <div>
+      {/* افکت اسپات‌لایت داینامیک الهام‌گرفته از Aceternity UI که نشانگر موس را دنبال می‌کند */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-px rounded-3xl transition-opacity duration-300 z-0 hidden md:block"
+        style={{
+          opacity: isHovered ? 1 : 0,
+          background: isLight
+            ? `radial-gradient(420px circle at ${spotlightPos.x}px ${spotlightPos.y}px, rgba(14, 165, 233, 0.11), transparent 70%)`
+            : `radial-gradient(450px circle at ${spotlightPos.x}px ${spotlightPos.y}px, rgba(0, 229, 255, 0.13), transparent 70%)`,
+        }}
+      />
+
+      <div className="relative z-10">
         {/* ۱. بنر بصری اختصاصی خدمت */}
         <div className="mb-4">
           {renderArtBanner()}
@@ -244,15 +291,21 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
         <div className="flex items-start justify-between gap-3 mb-2">
           <div>
             <span
-              className={`text-[11px] font-mono font-bold tracking-wider block mb-0.5 ${
-                isLight ? 'text-sky-600' : 'text-cyan-400'
+              className={`text-[11px] font-mono font-bold tracking-wider block mb-0.5 transition-all duration-300 ${
+                isInterrupted
+                  ? activeAnomaly?.numberClass || ''
+                  : isLight
+                  ? 'text-sky-600'
+                  : 'text-cyan-400'
               }`}
             >
               SERVICE #{service.number}
             </span>
             <h3
-              className={`text-base sm:text-lg font-black transition-colors ${
-                isLight
+              className={`text-base sm:text-lg font-black transition-all duration-300 ${
+                isInterrupted
+                  ? activeAnomaly?.titleClass || ''
+                  : isLight
                   ? 'text-slate-900 group-hover:text-sky-700'
                   : 'text-white group-hover:text-cyan-200'
               }`}
@@ -263,44 +316,55 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
 
           {service.popular && (
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${
-                isLight
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 transition-all duration-300 ${
+                isInterrupted
+                  ? 'bg-red-600 text-white border-red-400 font-black scale-110 shadow-[0_0_16px_rgba(239,68,68,0.75)]'
+                  : isLight
                   ? 'bg-amber-50 text-amber-700 border-amber-300'
                   : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
               }`}
             >
-              ویژه و پرطرفدار
+              {isInterrupted ? '⚡ پرقدرت و پرتقاضا' : 'ویژه و پرطرفدار'}
             </span>
           )}
         </div>
 
-        {/* ۳. متن توضیحات (ترکیب اصطلاح تخصصی + بیان ساده) */}
+        {/* ۳. متن توضیحات با کنتراست تنظیم‌شده و قابلیت جلب توجه ناگهانی روی کلمات کلیدی */}
         <p
-          className={`text-xs leading-relaxed font-normal mb-3 min-h-[48px] ${
-            isLight ? 'text-slate-600' : 'text-slate-300'
+          className={`text-xs sm:text-[13px] leading-relaxed font-normal mb-3 min-h-[48px] ${
+            isLight ? 'text-slate-700' : 'text-slate-200'
           }`}
         >
-          {service.description}
+          {descWords.map((word, wIdx) => {
+            const isWordShocked = isInterrupted && wIdx === interruptedWordIdx;
+            return (
+              <React.Fragment key={wIdx}>
+                <span className={isWordShocked ? activeAnomaly?.highlightWordClass || '' : 'transition-all duration-200'}>
+                  {word}
+                </span>{' '}
+              </React.Fragment>
+            );
+          })}
         </p>
 
-        {/* دکمه و بخش بازشونده «توضیحات بیشتر» */}
+        {/* دکمه و بخش بازشونده «توضیحات بیشتر» با ابعاد بزرگ‌تر جهت لمس آسان در موبایل */}
         {service.detailedDescription && (
           <div className="mb-4">
             <button
               type="button"
               onClick={() => setIsDetailsOpen(!isDetailsOpen)}
               aria-expanded={isDetailsOpen}
-              className={`inline-flex items-center gap-1.5 text-xs font-bold py-1 px-2.5 rounded-lg border transition-all ${
+              className={`inline-flex items-center gap-1.5 text-xs font-bold py-2 px-3 min-h-[40px] rounded-xl border transition-all active:scale-95 ${
                 isLight
                   ? isDetailsOpen
-                    ? 'bg-sky-50 border-sky-300 text-sky-700'
-                    : 'bg-slate-100/80 hover:bg-sky-50/60 border-slate-200 text-sky-700'
+                    ? 'bg-sky-50 border-sky-300 text-sky-800'
+                    : 'bg-slate-100/90 hover:bg-sky-50/80 border-slate-200 text-sky-700'
                   : isDetailsOpen
-                  ? 'bg-cyan-950/60 border-cyan-500/40 text-cyan-300'
-                  : 'bg-slate-900/80 hover:bg-slate-800 border-slate-800 text-cyan-300'
+                  ? 'bg-cyan-950/70 border-cyan-500/50 text-cyan-200'
+                  : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 text-cyan-300'
               }`}
             >
-              <span>{isDetailsOpen ? 'بستن توضیحات بیشتر' : 'توضیحات بیشتر به زبان ساده'}</span>
+              <span>{isDetailsOpen ? 'بستن جزئیات' : 'نتیجه و مزیت تجاری برای شما'}</span>
               <svg
                 className={`w-3.5 h-3.5 transition-transform duration-300 ${
                   isDetailsOpen ? 'rotate-180' : ''
@@ -328,7 +392,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
                     isLight ? 'text-sky-700' : 'text-cyan-300'
                   }`}
                 >
-                  این خدمت چطور به کسب‌وکار شما کمک می‌کند؟
+                  این خدمت چطور ارزش واقعی محصول و برند شما را به نمایش می‌گذارد؟
                 </span>
                 <p>{service.detailedDescription}</p>
               </div>
@@ -344,7 +408,17 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
         >
           {service.tags.map((tag, idx) => (
             <React.Fragment key={idx}>
-              <span className={isLight ? 'text-slate-700 font-medium' : 'text-slate-300'}>#{tag}</span>
+              <span
+                className={
+                  isInterrupted && idx === 0
+                    ? 'text-red-500 font-black scale-105 inline-block transition-all'
+                    : isLight
+                    ? 'text-slate-700 font-medium'
+                    : 'text-slate-300'
+                }
+              >
+                #{tag}
+              </span>
               {idx < service.tags.length - 1 && (
                 <span className={isLight ? 'text-slate-300' : 'text-slate-600'}>·</span>
               )}
@@ -359,7 +433,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
               isLight ? 'text-slate-500' : 'text-slate-400'
             }`}
           >
-            اقلام تحویلی تضمین‌شده:
+            پکیج اجرایی و سورس‌های تحویلی شما:
           </span>
           {service.deliverables.map((item, idx) => (
             <div
@@ -368,42 +442,82 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
                 isLight ? 'text-slate-700' : 'text-slate-300'
               }`}
             >
-              <span className={`text-xs font-bold ${isLight ? 'text-sky-600' : 'text-cyan-400'}`}>✓</span>
+              <span
+                className={`text-xs font-bold ${
+                  isInterrupted && idx === 0
+                    ? 'text-red-500 scale-125 inline-block'
+                    : isLight
+                    ? 'text-sky-600'
+                    : 'text-cyan-400'
+                }`}
+              >
+                ✓
+              </span>
               <span>{item}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* بخش پایین کارت: قیمت‌گذاری و دکمه‌های اقدام */}
+      {/* بخش پایین کارت: قیمت‌گذاری و دکمه‌های اقدام بزرگ‌شده جهت لمس راحت با انگشت */}
       <div
-        className={`pt-4 border-t ${
-          isLight ? 'border-slate-200/80' : 'border-slate-800/80'
+        className={`relative z-10 pt-4 border-t ${
+          isLight ? 'border-slate-200/90' : 'border-slate-800/90'
         }`}
       >
         <div className="flex items-center justify-between gap-2 mb-4">
           <div>
-            <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-              شروع قیمت از:
-            </span>
-            <div className="flex items-baseline gap-1.5">
-              <span
-                className={`text-lg sm:text-xl font-black tabular-nums ${
-                  isLight ? 'text-slate-900' : 'text-white'
-                }`}
-              >
-                {formatPersianPrice(discountedPrice)}
-              </span>
-              {hasDiscount && (
-                <span className="text-xs text-slate-400 line-through tabular-nums">
-                  {formatPersianPrice(service.startingPrice)}
+            {showPrices ? (
+              <>
+                <span className={`text-[11px] font-medium block mb-0.5 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                  محدوده تعرفه پروژه:
                 </span>
-              )}
-            </div>
+                <div className="flex flex-wrap items-baseline gap-1.5">
+                  <div className="flex items-baseline gap-1 text-xs">
+                    <span className={`text-[11px] font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>شروع از</span>
+                    <span
+                      className={`text-base sm:text-lg font-black tabular-nums transition-all duration-300 ${
+                        isInterrupted
+                          ? 'text-red-500 scale-105 inline-block drop-shadow-[0_0_10px_rgba(239,68,68,0.45)]'
+                          : isLight
+                          ? 'text-slate-900'
+                          : 'text-white'
+                      }`}
+                    >
+                      {formatPersianPrice(discountedPrice)}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1 text-xs">
+                    <span className={`text-[11px] font-normal ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>تا</span>
+                    <span
+                      className={`text-base sm:text-lg font-black tabular-nums ${
+                        isLight ? 'text-slate-900' : 'text-white'
+                      }`}
+                    >
+                      {formatPersianPrice(discountedPrice * 10)}
+                    </span>
+                  </div>
+                </div>
+                {hasDiscount && (
+                  <span className="text-[10px] text-slate-400 line-through tabular-nums block mt-0.5">
+                    تعرفه پایه بدون تخفیف: {formatPersianPrice(service.startingPrice)}
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className={`text-[11px] font-medium block mb-0.5 ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                  تعرفه و برآورد پروژه:
+                </span>
+                <span className={`text-xs sm:text-sm font-bold ${isLight ? 'text-sky-700' : 'text-cyan-300'}`}>
+                  استعلام و مشاوره توافقی
+                </span>
+              </>
+            )}
           </div>
 
-          <div className="text-left">
-            <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+          <div className="text-left shrink-0">
+            <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
               زمان تحویل:
             </span>
             <span className={`text-xs font-bold ${isLight ? 'text-sky-600' : 'text-cyan-300'}`}>
@@ -412,17 +526,26 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => onSelect(service)}
-            className={`flex-1 py-3 min-h-[46px] rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
-              isLight
-                ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-[0_6px_18px_rgba(2,132,199,0.28)] hover:shadow-[0_10px_24px_rgba(2,132,199,0.38)]'
-                : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,229,255,0.25)] hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]'
+            data-cursor-text="سفارش"
+            className={`btn-shimmer flex-1 py-3.5 px-4 min-h-[48px] rounded-xl font-black text-xs sm:text-[13px] transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 ${
+              isInterrupted && activeAnomaly?.ctaClass
+                ? activeAnomaly.ctaClass
+                : isLight
+                ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-[0_6px_18px_rgba(2,132,199,0.28)] hover:shadow-[0_12px_28px_rgba(2,132,199,0.4)]'
+                : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_18px_rgba(0,229,255,0.28)] hover:shadow-[0_0_26px_rgba(0,229,255,0.48)]'
             }`}
           >
-            <span>ثبت سفارش / استعلام فوری</span>
-            <svg className="w-3.5 h-3.5 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <span>
+              {isInterrupted
+                ? 'شروع پرقدرت این پروژه ⚡'
+                : showPrices
+                ? 'ثبت سفارش / استعلام فوری'
+                : 'استعلام فوری و ثبت سفارش'}
+            </span>
+            <svg className="w-4 h-4 rotate-180 transition-transform duration-300 group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
@@ -432,13 +555,14 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, onSelect, onO
             <button
               onClick={() => onOpenChatWithService(service)}
               title="گفت‌وگو درباره این خدمت"
-              className={`p-3 min-h-[46px] min-w-[46px] rounded-xl border transition-colors flex items-center justify-center active:scale-95 ${
+              aria-label={`گفت‌وگو درباره ${service.title}`}
+              className={`p-3.5 min-h-[48px] min-w-[48px] rounded-xl border transition-all duration-200 flex items-center justify-center active:scale-95 ${
                 isLight
-                  ? 'bg-slate-100 hover:bg-sky-50 text-slate-600 hover:text-sky-600 border-slate-200 hover:border-sky-300'
-                  : 'bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border-slate-700/70 hover:border-cyan-500/40'
+                  ? 'bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-sky-600 border-slate-200 hover:border-sky-300'
+                  : 'bg-slate-900/95 hover:bg-slate-800 text-slate-200 hover:text-cyan-300 border-slate-700/80 hover:border-cyan-500/50'
               }`}
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </button>
