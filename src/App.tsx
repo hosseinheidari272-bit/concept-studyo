@@ -21,6 +21,7 @@ import { ServiceItem, CoinSystemSettings, PromoBannerSettings } from './types';
 import { studioServices } from './data/services';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { apiFetch as fetch } from './utils/offlineApiBridge';
 
 const INITIAL_COIN_SYSTEM: CoinSystemSettings = {
   enabled: false,

@@ -17,6 +17,7 @@ import { formatPersianPrice, toPersianDigits } from '../utils/persianDate';
 import { OrderInvoiceModal } from './OrderInvoiceModal';
 import { AdminChatTab } from './AdminChatTab';
 import { CoinEmblem, COIN_DESIGN_CATALOG } from './CoinBadge';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 interface AdminPanelProps {
   onServicePriceUpdated?: () => void;

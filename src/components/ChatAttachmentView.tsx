@@ -6,6 +6,7 @@ import {
   formatDurationTimer,
 } from '../utils/chatMediaUtils';
 import { toPersianDigits } from '../utils/persianDate';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 export const CHAT_ACCEPT_TYPES =
   'image/*,video/*,audio/*,.pdf,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.psd,.ai,.txt,.csv,.json,.svg,.blend,.fbx,.obj,.glb';

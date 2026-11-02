@@ -3,6 +3,7 @@ import { ScrollReveal } from './ScrollReveal';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { TestimonialItem } from '../types';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 const INITIAL_TESTIMONIALS: TestimonialItem[] = [
   {

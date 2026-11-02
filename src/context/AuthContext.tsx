@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { UserProfile } from '../types';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 interface AuthContextType {
   user: UserProfile | null;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ChatThread, ChatAttachment } from '../types';
 import { toPersianDigits } from '../utils/persianDate';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 import {
   CHAT_ACCEPT_TYPES,
   ChatMessageAttachments,

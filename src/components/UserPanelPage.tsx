@@ -5,6 +5,7 @@ import { CoinSystemSettings, CoinTransaction, OrderItem, PaymentGatewaySettings 
 import { CoinEmblem, COIN_DESIGN_CATALOG } from './CoinBadge';
 import { WalletBannerSkeleton, CoinPackageSkeleton } from './LoadingSkeleton';
 import { formatPersianPrice, toPersianDigits } from '../utils/persianDate';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 interface UserPanelPageProps {
   coinSystem: CoinSystemSettings;

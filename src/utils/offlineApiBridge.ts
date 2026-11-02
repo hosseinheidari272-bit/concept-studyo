@@ -912,58 +912,69 @@ export async function handleLocalApiRequest(
 }
 
 let bridgeInstalled = false;
+let capturedNativeFetch: typeof window.fetch | null = null;
+
+function getNativeFetch(): typeof window.fetch {
+  if (capturedNativeFetch) return capturedNativeFetch;
+  if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+    capturedNativeFetch = window.fetch.bind(window);
+    return capturedNativeFetch;
+  }
+  return globalThis.fetch.bind(globalThis);
+}
+
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const nativeFetch = getNativeFetch();
+  const urlStr =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+      ? input.toString()
+      : input.url;
+
+  const isApiCall =
+    urlStr.startsWith('/api/') ||
+    urlStr.startsWith('./api/') ||
+    urlStr.includes('/api/');
+
+  if (!isApiCall) {
+    return nativeFetch(input, init);
+  }
+
+  // On known static hosts (*.github.io, *.netlify.app, etc.) or file://, skip network call to /api/* to avoid 404 console noise
+  const hostname = typeof window !== 'undefined' ? window.location.hostname || '' : '';
+  const protocol = typeof window !== 'undefined' ? window.location.protocol || '' : '';
+  const isKnownStaticHost =
+    hostname.endsWith('.github.io') ||
+    hostname.endsWith('.netlify.app') ||
+    hostname.endsWith('.pages.dev') ||
+    hostname.endsWith('.vercel.app') ||
+    protocol === 'file:';
+
+  if (!isKnownStaticHost) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2200);
+      const res = await nativeFetch(input, {
+        ...init,
+        signal: init?.signal || controller.signal,
+      });
+      clearTimeout(timer);
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json') && res.status !== 502 && res.status !== 503 && res.status !== 504) {
+        return res;
+      }
+    } catch {
+      // Fallback to local engine below
+    }
+  }
+
+  return handleLocalApiRequest(urlStr, init);
+}
 
 export function installOfflineApiBridge(): void {
   if (typeof window === 'undefined' || bridgeInstalled) return;
   bridgeInstalled = true;
-
-  const nativeFetch = window.fetch.bind(window);
-
-  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const urlStr =
-      typeof input === 'string'
-        ? input
-        : input instanceof URL
-        ? input.toString()
-        : input.url;
-
-    const isApiCall =
-      urlStr.startsWith('/api/') ||
-      urlStr.startsWith('./api/') ||
-      urlStr.includes('/api/');
-
-    if (!isApiCall) {
-      return nativeFetch(input, init);
-    }
-
-    // On GitHub Pages (*.github.io) or file://, skip network call to /api/* to avoid 404 console noise
-    const hostname = window.location.hostname || '';
-    const isKnownStaticHost =
-      hostname.endsWith('.github.io') ||
-      hostname.endsWith('.netlify.app') ||
-      hostname.endsWith('.pages.dev') ||
-      hostname.endsWith('.vercel.app') ||
-      window.location.protocol === 'file:';
-
-    if (!isKnownStaticHost) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2200);
-        const res = await nativeFetch(input, {
-          ...init,
-          signal: init?.signal || controller.signal,
-        });
-        clearTimeout(timer);
-
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json') && res.status !== 502 && res.status !== 503 && res.status !== 504) {
-          return res;
-        }
-      } catch {
-        // Fallback to local engine below
-      }
-    }
-
-    return handleLocalApiRequest(urlStr, init);
-  };
+  getNativeFetch();
 }

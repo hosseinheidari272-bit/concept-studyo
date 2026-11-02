@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatThread, ChatAttachment, UserProfile, OrderItem } from '../types';
 import { toPersianDigits } from '../utils/persianDate';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 import {
   CHAT_ACCEPT_TYPES,
   ChatMessageAttachments,

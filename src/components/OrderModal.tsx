@@ -3,6 +3,7 @@ import { ServiceItem, CoinSystemSettings } from '../types';
 import { formatPersianPrice, toPersianDigits } from '../utils/persianDate';
 import { useAuth } from '../context/AuthContext';
 import { CoinEmblem } from './CoinBadge';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 interface OrderModalProps {
   initialService: ServiceItem | null;
