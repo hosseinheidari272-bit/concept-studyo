@@ -195,12 +195,14 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
       params.delete('coins');
       params.delete('ref');
       const cleanQuery = params.toString();
-      window.history.replaceState({}, '', cleanQuery ? `/?${cleanQuery}` : '/?page=panel');
+      const basePath = window.location.pathname || './';
+      window.history.replaceState({}, '', cleanQuery ? `${basePath}?${cleanQuery}` : `${basePath}?page=panel`);
     } else if (paymentStatus === 'failed') {
       showFeedback('error', 'فرآیند پرداخت آنلاین لغو شد یا ناموفق بود. در صورت کسر وجه، تا ۷۲ ساعت به حساب شما بازمی‌گردد.');
       params.delete('payment');
       const cleanQuery = params.toString();
-      window.history.replaceState({}, '', cleanQuery ? `/?${cleanQuery}` : '/?page=panel');
+      const basePath = window.location.pathname || './';
+      window.history.replaceState({}, '', cleanQuery ? `${basePath}?${cleanQuery}` : `${basePath}?page=panel`);
     }
   }, [token]);
 

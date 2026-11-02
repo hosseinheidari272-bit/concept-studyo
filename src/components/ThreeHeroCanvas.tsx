@@ -388,15 +388,21 @@ export const ThreeHeroCanvas: React.FC = () => {
     camera.position.set(0, 7.2, 24.5);
     camera.lookAt(0, -0.4, 0);
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: !isMobileDevice,
-      powerPreference: isMobileDevice ? 'low-power' : 'high-performance',
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: !isMobileDevice,
+        powerPreference: isMobileDevice ? 'low-power' : 'high-performance',
+      });
+    } catch {
+      // اگر مرورگر یا کارت گرافیک از WebGL پشتیبانی نکند، بدون خطا از رندر سه‌بعدی عبور می‌کند
+      return;
+    }
 
     const gl = renderer.getContext();
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-    const rendererStr = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '';
+    const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
+    const rendererStr = debugInfo && gl ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '') : '';
     const isSoftwareGl = /SwiftShader|llvmpipe|softpipe|Software/i.test(rendererStr);
 
     renderer.setSize(width, height);

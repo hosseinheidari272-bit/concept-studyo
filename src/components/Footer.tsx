@@ -249,7 +249,7 @@ export const Footer: React.FC<FooterProps> = ({
                 </div>
 
                 <span className={`text-xs font-mono pt-1 ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                  ایمیل: info@sixfold-studio.ir
+                  ایمیل: info@concept-studio.ir
                 </span>
               </div>
             </div>

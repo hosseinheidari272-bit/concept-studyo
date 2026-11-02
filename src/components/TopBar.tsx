@@ -144,7 +144,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           className="flex items-center gap-1.5 sm:gap-3 shrink-0"
         >
           <a
-            href="/"
+            href="./"
             className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
           >
             <div
@@ -305,11 +305,12 @@ export const TopBar: React.FC<TopBarProps> = ({
                 )}
 
                 <a
-                  href="/?page=panel"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    if (onOpenUserPanel) onOpenUserPanel();
+                  href="?page=panel"
+                  onClick={(e) => {
+                    if (onOpenUserPanel) {
+                      e.preventDefault();
+                      onOpenUserPanel();
+                    }
                   }}
                   title="باز کردن پنل کاربری و کیف پول کوین"
                   className="px-2 py-1.5 rounded-xl bg-[#07090E] hover:bg-slate-900 text-amber-300 border border-amber-400/50 font-black text-[11px] shadow-xs transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap shrink-0"
@@ -343,15 +344,14 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </div>
 
                 <a
-                  href="/?page=panel"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => {
+                  href="?page=panel"
+                  onClick={(e) => {
                     if (onOpenUserPanel) {
+                      e.preventDefault();
                       onOpenUserPanel();
                     }
                   }}
-                  title="باز کردن پنل کاربری و کیف پول کوین در صفحه جدید"
+                  title="باز کردن پنل کاربری و کیف پول کوین"
                   className="px-2.5 py-1 rounded-lg bg-[#07090E] hover:bg-slate-900 text-amber-300 border border-amber-400/50 font-black text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1 whitespace-nowrap"
                 >
                   <span>پنل کاربری</span>
@@ -577,12 +577,13 @@ export const TopBar: React.FC<TopBarProps> = ({
               )}
 
               <a
-                href="/?page=panel"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
+                href="?page=panel"
+                onClick={(e) => {
                   setIsMobileMenuOpen(false);
-                  if (onOpenUserPanel) onOpenUserPanel();
+                  if (onOpenUserPanel) {
+                    e.preventDefault();
+                    onOpenUserPanel();
+                  }
                 }}
                 className="w-full py-2.5 px-3 min-h-[42px] rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-2"
               >

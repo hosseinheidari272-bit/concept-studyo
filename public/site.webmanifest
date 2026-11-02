@@ -1,12 +1,11 @@
 {
-  "id": "/",
   "name": "استودیو دیزاین کانسپت | تیزرسازی، رندرینگ سه‌بعدی و توسعه دیجیتال",
   "short_name": "کانسپت استودیو",
   "description": "استودیو تخصصی طراحی گرافیک، ساخت تیزر تبلیغاتی، رندرهای سه‌بعدی و توسعه وب‌سایت‌های لوکس و اتوماسیون کسب‌وکار با استانداردهای جهانی.",
   "lang": "fa-IR",
   "dir": "rtl",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#04070D",
@@ -20,25 +19,25 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/pwa-192x192.png",
+      "src": "./pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-512x512.png",
+      "src": "./pwa-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/pwa-maskable-512x512.png",
+      "src": "./pwa-maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon.svg",
+      "src": "./icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"
@@ -49,10 +48,10 @@
       "name": "ثبت سفارش و استعلام فوری",
       "short_name": "ثبت سفارش",
       "description": "مشاهده تعرفه‌ها و ثبت سفارش آنلاین پروژه",
-      "url": "/#services",
+      "url": "./#services",
       "icons": [
         {
-          "src": "/pwa-192x192.png",
+          "src": "./pwa-192x192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -62,10 +61,10 @@
       "name": "پنل کاربری و کیف پول کوین",
       "short_name": "پنل کاربری",
       "description": "ورود به داشبورد و مدیریت موجودی کوین استودیو",
-      "url": "/?page=panel",
+      "url": "./?page=panel",
       "icons": [
         {
-          "src": "/pwa-192x192.png",
+          "src": "./pwa-192x192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -75,10 +74,10 @@
       "name": "گفت‌وگو و پشتیبانی مدیریت",
       "short_name": "چت مستقیم",
       "description": "ارسال پیام، ویس یا فایل مستقیم به مدیریت استودیو",
-      "url": "/#about",
+      "url": "./#about",
       "icons": [
         {
-          "src": "/pwa-192x192.png",
+          "src": "./pwa-192x192.png",
           "sizes": "192x192",
           "type": "image/png"
         }

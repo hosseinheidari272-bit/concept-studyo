@@ -15,6 +15,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const { isLight } = useTheme();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showDesktopGuide, setShowDesktopGuide] = useState(false);
 
   // اگر کاربر قبلاً در حالت PWA نصب‌شده باشد، دکمه نیازی نیست
   if (isInstalled) {
@@ -158,8 +159,6 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
       </>
     );
   }
-
-  const [showDesktopGuide, setShowDesktopGuide] = useState(false);
 
   // در حالت دسکتاپی یا حالتی که مرورگر هنوز پرامپت را برنگردانده، یک دکمه نصب با راهنمای دوستانه ارائه می‌شود
   return (

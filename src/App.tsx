@@ -180,7 +180,7 @@ function AppContent() {
           onServicePriceUpdated={fetchServices}
           onExitFullPage={() => {
             if (window.location.search.includes('page=panel')) {
-              window.history.pushState({}, '', '/');
+              window.history.pushState({}, '', window.location.pathname || './');
             }
             setActivePageView('home');
           }}
@@ -199,7 +199,7 @@ function AppContent() {
           coinSystem={coinSystem}
           onBackToSite={() => {
             if (window.location.search.includes('page=panel')) {
-              window.history.pushState({}, '', '/');
+              window.history.pushState({}, '', window.location.pathname || './');
             }
             setActivePageView('home');
           }}
@@ -408,12 +408,54 @@ function AppContent() {
   );
 }
 
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div
+          dir="rtl"
+          className="min-h-screen bg-[#04070D] text-slate-100 flex flex-col items-center justify-center p-6 text-center"
+        >
+          <div className="max-w-md w-full p-6 rounded-3xl bg-[#0B101E] border border-cyan-500/30 shadow-2xl space-y-4">
+            <h1 className="text-lg font-black text-cyan-300">استودیو دیزاین کانسپت</h1>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              در بارگذاری یکی از اجزای نمایشی خطایی رخ داد. با نوسازی صفحه، برنامه به حالت عادی بازمی‌گردد.
+            </p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition-all"
+            >
+              بارگذاری مجدد صفحه
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ThemeProvider>
+    </AppErrorBoundary>
   );
 }
