@@ -212,59 +212,67 @@
         text-rendering: optimizeLegibility;
         -webkit-tap-highlight-color: transparent;
       }
+      @keyframes cs-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      @keyframes cs-shimmer {
+        0% { transform: translateX(100%); }
+        50% { transform: translateX(0%); }
+        100% { transform: translateX(-100%); }
+      }
     </style>
-
-    <!-- بوت‌لودر هوشمند ۲ لایه: اگر سایت مستقیم از روت مخزن گیت‌هاب اجرا شود بدون نیاز به اکشنز، باندل کامپایل‌شده را لود می‌کند -->
-    <script>
-      window.__bootPrebuiltBundle = function () {
-        if (
-          window.__CONCEPT_STUDIO_MOUNTED__ ||
-          window.__CONCEPT_BOOT_TRIGGERED__ ||
-          document.querySelector('script[src*="@vite/client"]')
-        ) {
-          return;
-        }
-        window.__CONCEPT_BOOT_TRIGGERED__ = true;
-
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = './assets/app.css';
-        link.onerror = function () {
-          var fallbackLink = document.createElement('link');
-          fallbackLink.rel = 'stylesheet';
-          fallbackLink.href = './dist/assets/app.css';
-          document.head.appendChild(fallbackLink);
-        };
-        document.head.appendChild(link);
-
-        var script = document.createElement('script');
-        script.type = 'module';
-        script.crossOrigin = 'anonymous';
-        script.src = './assets/app.js';
-        script.onerror = function () {
-          var fallbackScript = document.createElement('script');
-          fallbackScript.type = 'module';
-          fallbackScript.crossOrigin = 'anonymous';
-          fallbackScript.src = './dist/assets/app.js';
-          document.body.appendChild(fallbackScript);
-        };
-        document.body.appendChild(script);
-      };
-
-      window.addEventListener('DOMContentLoaded', function () {
-        if (!document.querySelector('script[src*="@vite/client"]')) {
-          setTimeout(function () {
-            var root = document.getElementById('root');
-            if (!window.__CONCEPT_STUDIO_MOUNTED__ && root && root.children.length === 0) {
-              window.__bootPrebuiltBundle();
-            }
-          }, 300);
-        }
-      });
-    </script>
   </head>
-  <body class="antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
-    <div id="root"></div>
-    <script type="module" src="./src/main.tsx" onerror="window.__bootPrebuiltBundle && window.__bootPrebuiltBundle()"></script>
+  <body class="antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div id="root">
+      <div id="cs-initial-loader" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #04070D; color: #f1f5f9; padding: 24px; text-align: center; font-family: 'Vazirmatn', system-ui, sans-serif;">
+        <div style="position: relative; width: 84px; height: 84px; margin-bottom: 24px;">
+          <div style="position: absolute; inset: 0; border-radius: 24px; background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(6,78,59,0.4)); border: 1px solid rgba(16,185,129,0.35); box-shadow: 0 0 32px rgba(16,185,129,0.25); display: flex; align-items: center; justify-content: center; font-size: 32px; color: #10b981;">
+            ✦
+          </div>
+          <div style="position: absolute; inset: -4px; border-radius: 28px; border: 2px dashed rgba(16,185,129,0.4); animation: cs-spin 12s linear infinite;"></div>
+        </div>
+        <h1 style="font-size: 22px; font-weight: 800; margin: 0 0 8px 0; letter-spacing: -0.02em; color: #ffffff;">استودیو دیزاین کانسپت</h1>
+        <p style="font-size: 13px; color: #94a3b8; margin: 0 0 20px 0; max-width: 320px; line-height: 1.6;">مهندسی تصویر، رندرهای سه‌بعدی و توسعه دیجیتال</p>
+        
+        <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; position: relative; margin-bottom: 14px;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(90deg, #10b981, #06b6d4); border-radius: 999px; animation: cs-shimmer 1.8s ease-in-out infinite;"></div>
+        </div>
+        <div id="cs-loader-status" style="font-size: 12px; color: #10b981; font-weight: 500;">در حال راه‌اندازی استودیو...</div>
+
+        <div id="cs-slow-net-notice" style="display: none; margin-top: 24px; padding: 12px 18px; border-radius: 14px; background: rgba(15,23,42,0.8); border: 1px solid rgba(16,185,129,0.25); max-width: 360px; font-size: 12px; color: #cbd5e1; line-height: 1.7;">
+          <span>اتصال به اینترنت بین‌الملل محدود یا کند است؛ منابع به صورت مستقیم در حال بارگذاری هستند.</span>
+          <button onclick="window.location.reload()" style="display: block; margin: 10px auto 0; padding: 6px 14px; background: rgba(16,185,129,0.2); border: 1px solid #10b981; color: #6ee7b7; border-radius: 8px; font-size: 11px; cursor: pointer;">بارگذاری مجدد ↻</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      setTimeout(function() {
+        var notice = document.getElementById('cs-slow-net-notice');
+        if (notice && document.getElementById('cs-initial-loader')) {
+          notice.style.display = 'block';
+        }
+      }, 5000);
+    </script>
+    <!-- هوش بارگذاری دوگانه: لود خودکار پکیج کامپایل‌شده روی گیت‌هاب و هاست‌های ایستا -->
+    <script>
+      (function() {
+        var isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocalDev) {
+          var css = document.createElement('link');
+          css.rel = 'stylesheet';
+          css.crossOrigin = 'anonymous';
+          css.href = './assets/app.css';
+          document.head.appendChild(css);
+
+          var script = document.createElement('script');
+          script.type = 'module';
+          script.crossOrigin = 'anonymous';
+          script.src = './assets/app.js';
+          document.body.appendChild(script);
+        }
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

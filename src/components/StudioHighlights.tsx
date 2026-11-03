@@ -195,8 +195,8 @@ export const StudioHighlights: React.FC = () => {
                 }}
                 className={`interactive-card-lift relative h-full p-5 sm:p-6 rounded-2xl backdrop-blur-xl border group flex flex-col justify-between ${
                   isLight
-                    ? 'bg-white border-slate-200/95 hover:border-sky-400 shadow-[0_10px_30px_rgba(15,23,42,0.05)] hover:shadow-[0_18px_40px_rgba(2,132,199,0.14)]'
-                    : 'bg-[#090F1D]/95 border-slate-800/90 hover:border-cyan-400/50 shadow-[0_12px_35px_rgba(0,0,0,0.45)] hover:shadow-[0_18px_45px_rgba(0,229,255,0.14)]'
+                    ? 'bg-white border-slate-200/95 hover:border-emerald-500/60 shadow-[0_10px_30px_rgba(15,23,42,0.05)] hover:shadow-[0_18px_40px_rgba(16,185,129,0.12)]'
+                    : 'bg-[#080E18]/95 border-slate-800/90 hover:border-emerald-500/50 shadow-[0_12px_35px_rgba(0,0,0,0.45)] hover:shadow-[0_18px_45px_rgba(16,185,129,0.18)]'
                 } ${isTriggered && activeAnomaly ? activeAnomaly.containerClass : ''}`}
               >
                 <div>
@@ -206,8 +206,8 @@ export const StudioHighlights: React.FC = () => {
                         isTriggered && activeAnomaly
                           ? activeAnomaly.numberClass
                           : isLight
-                          ? 'text-sky-600'
-                          : 'text-cyan-400'
+                          ? 'text-emerald-600'
+                          : 'text-emerald-400'
                       }`}
                     >
                       {h.num}
@@ -217,8 +217,8 @@ export const StudioHighlights: React.FC = () => {
                         isTriggered
                           ? 'text-red-500 font-black'
                           : isLight
-                          ? 'text-slate-600 group-hover:text-sky-600'
-                          : 'text-slate-300 group-hover:text-cyan-300'
+                          ? 'text-slate-600 group-hover:text-emerald-600'
+                          : 'text-slate-300 group-hover:text-emerald-300'
                       }`}
                     >
                       {h.detail}
@@ -230,8 +230,8 @@ export const StudioHighlights: React.FC = () => {
                       isTriggered && activeAnomaly
                         ? activeAnomaly.titleClass
                         : isLight
-                        ? 'text-slate-900 group-hover:text-sky-700'
-                        : 'text-white group-hover:text-cyan-200'
+                        ? 'text-slate-900 group-hover:text-emerald-700'
+                        : 'text-white group-hover:text-emerald-200'
                     }`}
                   >
                     {h.title}
@@ -255,8 +255,8 @@ export const StudioHighlights: React.FC = () => {
                     isTriggered
                       ? 'border-red-500/40 text-red-500 opacity-100'
                       : isLight
-                      ? 'border-slate-200/80 text-sky-700 opacity-90 group-hover:opacity-100'
-                      : 'border-slate-800/80 text-cyan-300 opacity-90 group-hover:opacity-100'
+                      ? 'border-slate-200/80 text-emerald-700 opacity-90 group-hover:opacity-100'
+                      : 'border-slate-800/80 text-emerald-400 opacity-90 group-hover:opacity-100'
                   }`}
                 >
                   <span>{h.spark}</span>

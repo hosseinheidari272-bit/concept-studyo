@@ -279,6 +279,59 @@ function createSaturnRingTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+// ایجاد تکسچرهای سحابی کیهانی زمردی، یشمی و فیروزه‌ای برای رفع تیرگی و جان بخشیدن به فضا
+function createNebulaTexture(isLightMode: boolean, colorVariant: 'emerald' | 'jade' | 'cyan'): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 384;
+  canvas.height = 384;
+  const ctx = canvas.getContext('2d')!;
+  const cx = 192;
+  const cy = 192;
+
+  const grad = ctx.createRadialGradient(cx, cy, 12, cx, cy, 185);
+  if (isLightMode) {
+    if (colorVariant === 'emerald') {
+      grad.addColorStop(0, 'rgba(16, 185, 129, 0.24)');
+      grad.addColorStop(0.35, 'rgba(52, 211, 153, 0.12)');
+      grad.addColorStop(0.7, 'rgba(6, 182, 212, 0.04)');
+    } else if (colorVariant === 'jade') {
+      grad.addColorStop(0, 'rgba(5, 150, 105, 0.22)');
+      grad.addColorStop(0.4, 'rgba(16, 185, 129, 0.10)');
+      grad.addColorStop(0.75, 'rgba(14, 165, 233, 0.03)');
+    } else {
+      grad.addColorStop(0, 'rgba(6, 182, 212, 0.20)');
+      grad.addColorStop(0.45, 'rgba(52, 211, 153, 0.09)');
+      grad.addColorStop(0.75, 'rgba(59, 130, 246, 0.02)');
+    }
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  } else {
+    if (colorVariant === 'emerald') {
+      grad.addColorStop(0, 'rgba(16, 185, 129, 0.65)');
+      grad.addColorStop(0.28, 'rgba(5, 150, 105, 0.42)');
+      grad.addColorStop(0.55, 'rgba(6, 78, 59, 0.25)');
+      grad.addColorStop(0.78, 'rgba(4, 120, 87, 0.12)');
+    } else if (colorVariant === 'jade') {
+      grad.addColorStop(0, 'rgba(52, 211, 153, 0.55)');
+      grad.addColorStop(0.32, 'rgba(16, 185, 129, 0.35)');
+      grad.addColorStop(0.6, 'rgba(13, 148, 136, 0.20)');
+      grad.addColorStop(0.82, 'rgba(6, 182, 212, 0.08)');
+    } else {
+      grad.addColorStop(0, 'rgba(20, 184, 166, 0.50)');
+      grad.addColorStop(0.35, 'rgba(16, 185, 129, 0.28)');
+      grad.addColorStop(0.65, 'rgba(6, 78, 59, 0.16)');
+      grad.addColorStop(0.85, 'rgba(14, 165, 233, 0.06)');
+    }
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  }
+
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 384, 384);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export const ThreeHeroCanvas: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
   const { isLight } = useTheme();
@@ -296,6 +349,8 @@ export const ThreeHeroCanvas: React.FC = () => {
     glowTexLight: THREE.CanvasTexture;
     orbitLines: THREE.LineLoop[];
     starsMat: THREE.PointsMaterial;
+    greenStarsMat?: THREE.PointsMaterial;
+    nebulaSprites?: Array<{ sprite: THREE.Sprite; texDark: THREE.CanvasTexture; texLight: THREE.CanvasTexture }>;
   } | null>(null);
 
   useEffect(() => {
@@ -328,20 +383,35 @@ export const ThreeHeroCanvas: React.FC = () => {
 
       refs.orbitLines.forEach((line, idx) => {
         const mat = line.material as THREE.LineBasicMaterial;
-        mat.color.setHex(idx % 2 === 0 ? 0x0284c7 : 0x475569);
-        mat.opacity = 0.22;
+        mat.color.setHex(idx % 2 === 0 ? 0x059669 : 0x0284c7);
+        mat.opacity = 0.25;
       });
 
       refs.starsMat.color.setHex(0x0369a1);
       refs.starsMat.opacity = 0.28;
-    } else {
-      // تنظیمات تم تاریک: فضای کیهانی عمیق با درخشش خورشیدی و سایه‌روشن سینمایی روی قمرها و سیارات
-      refs.ambientLight.color.setHex(0x0f172a);
-      refs.ambientLight.intensity = 0.26;
 
-      refs.hemiLight.color.setHex(0x1e293b);
+      if (refs.greenStarsMat) {
+        refs.greenStarsMat.opacity = 0.42;
+        refs.greenStarsMat.blending = THREE.NormalBlending;
+        refs.greenStarsMat.needsUpdate = true;
+      }
+
+      if (refs.nebulaSprites) {
+        refs.nebulaSprites.forEach(({ sprite, texLight }) => {
+          sprite.material.map = texLight;
+          sprite.material.blending = THREE.NormalBlending;
+          sprite.material.opacity = 0.32;
+          sprite.material.needsUpdate = true;
+        });
+      }
+    } else {
+      // تنظیمات تم تاریک: فضای کیهانی عمیق با درخشش خورشیدی، سحابی‌های زمردی و ستاره‌های سبز
+      refs.ambientLight.color.setHex(0x0f172a);
+      refs.ambientLight.intensity = 0.28;
+
+      refs.hemiLight.color.setHex(0x064e3b);
       refs.hemiLight.groundColor.setHex(0x020617);
-      refs.hemiLight.intensity = 0.25;
+      refs.hemiLight.intensity = 0.28;
 
       refs.sunPointLight.color.setHex(0xfff7ed);
       refs.sunPointLight.intensity = 6.2;
@@ -359,12 +429,27 @@ export const ThreeHeroCanvas: React.FC = () => {
 
       refs.orbitLines.forEach((line, idx) => {
         const mat = line.material as THREE.LineBasicMaterial;
-        mat.color.setHex(idx % 2 === 0 ? 0x38bdf8 : 0x94a3b8);
-        mat.opacity = 0.18;
+        mat.color.setHex(idx % 2 === 0 ? 0x10b981 : 0x38bdf8);
+        mat.opacity = 0.24;
       });
 
       refs.starsMat.color.setHex(0xe0f2fe);
       refs.starsMat.opacity = 0.72;
+
+      if (refs.greenStarsMat) {
+        refs.greenStarsMat.opacity = 0.92;
+        refs.greenStarsMat.blending = THREE.AdditiveBlending;
+        refs.greenStarsMat.needsUpdate = true;
+      }
+
+      if (refs.nebulaSprites) {
+        refs.nebulaSprites.forEach(({ sprite, texDark }) => {
+          sprite.material.map = texDark;
+          sprite.material.blending = THREE.AdditiveBlending;
+          sprite.material.opacity = 0.76;
+          sprite.material.needsUpdate = true;
+        });
+      }
     }
   }, [isLight]);
 
@@ -400,10 +485,15 @@ export const ThreeHeroCanvas: React.FC = () => {
       return;
     }
 
-    const gl = renderer.getContext();
-    const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
-    const rendererStr = debugInfo && gl ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '') : '';
-    const isSoftwareGl = /SwiftShader|llvmpipe|softpipe|Software/i.test(rendererStr);
+    let isSoftwareGl = false;
+    try {
+      const gl = renderer.getContext();
+      const debugInfo = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
+      const rendererStr = debugInfo && gl ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '') : '';
+      isSoftwareGl = /SwiftShader|llvmpipe|softpipe|Software/i.test(rendererStr);
+    } catch {
+      isSoftwareGl = false;
+    }
 
     renderer.setSize(width, height);
     renderer.setPixelRatio(
@@ -793,8 +883,8 @@ export const ThreeHeroCanvas: React.FC = () => {
       });
     });
 
-    // ۳. ستارگان و ذرات کیهانی در پس‌زمینه برای عمق سه‌بعدی (سبک‌شده در موبایل برای کاهش مصرف باتری)
-    const starCount = isMobileDevice ? 180 : 420;
+    // ۳. ستارگان پایه در پس‌زمینه برای عمق سه‌بعدی
+    const starCount = isMobileDevice ? 180 : 380;
     const starPositions = new Float32Array(starCount * 3);
     for (let i = 0; i < starCount; i++) {
       const r = 24 + Math.random() * 38;
@@ -820,6 +910,86 @@ export const ThreeHeroCanvas: React.FC = () => {
     const starField = new THREE.Points(starsGeo, starsMat);
     scene.add(starField);
 
+    // ۳.۱. ستارگان درخشان زمردی، نعنایی و فیروزه‌ای برای از بین بردن فضای تیره و بی‌روح کهکشان
+    const greenStarCount = isMobileDevice ? 240 : 520;
+    const greenStarPositions = new Float32Array(greenStarCount * 3);
+    const greenStarColors = new Float32Array(greenStarCount * 3);
+    const greenPalette = [
+      new THREE.Color('#10b981'), // زمردی زنده
+      new THREE.Color('#34d399'), // سبز نعنایی درخشان
+      new THREE.Color('#6ee7b7'), // سبز متالیک روشن
+      new THREE.Color('#14b8a6'), // فیروزه‌ای کیهانی
+      new THREE.Color('#a7f3d0'), // عاجی سبز نئونی
+    ];
+
+    for (let i = 0; i < greenStarCount; i++) {
+      const r = 18 + Math.random() * 45;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      greenStarPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      greenStarPositions[i * 3 + 1] = (r * Math.cos(phi)) * 0.75;
+      greenStarPositions[i * 3 + 2] = -6 - Math.abs(r * Math.sin(phi) * Math.sin(theta)) * 0.85;
+
+      const c = greenPalette[Math.floor(Math.random() * greenPalette.length)];
+      greenStarColors[i * 3] = c.r;
+      greenStarColors[i * 3 + 1] = c.g;
+      greenStarColors[i * 3 + 2] = c.b;
+    }
+
+    const greenStarsGeo = new THREE.BufferGeometry();
+    greenStarsGeo.setAttribute('position', new THREE.BufferAttribute(greenStarPositions, 3));
+    greenStarsGeo.setAttribute('color', new THREE.BufferAttribute(greenStarColors, 3));
+    disposableGeometries.push(greenStarsGeo);
+
+    const greenStarsMat = new THREE.PointsMaterial({
+      vertexColors: true,
+      size: isMobileDevice ? 0.17 : 0.24,
+      transparent: true,
+      opacity: isLightRef.current ? 0.42 : 0.92,
+      sizeAttenuation: true,
+      blending: isLightRef.current ? THREE.NormalBlending : THREE.AdditiveBlending,
+    });
+    disposableMaterials.push(greenStarsMat);
+
+    const greenStarField = new THREE.Points(greenStarsGeo, greenStarsMat);
+    scene.add(greenStarField);
+
+    // ۳.۲. ابرهای سحابی کیهانی زمردی و یشمی (Emerald Cosmic Nebula) در پس‌زمینه
+    const nebulaData: Array<{ sprite: THREE.Sprite; texDark: THREE.CanvasTexture; texLight: THREE.CanvasTexture }> = [];
+    const nebulaConfigs = [
+      { x: -15, y: 8, z: -25, scale: 30, variant: 'emerald' as const, rotSpeed: 0.04 },
+      { x: 16, y: -7, z: -27, scale: 34, variant: 'jade' as const, rotSpeed: -0.035 },
+      { x: -7, y: -10, z: -22, scale: 26, variant: 'cyan' as const, rotSpeed: 0.05 },
+      { x: 10, y: 12, z: -30, scale: 36, variant: 'emerald' as const, rotSpeed: 0.03 },
+      { x: 0, y: 1, z: -20, scale: 24, variant: 'jade' as const, rotSpeed: -0.045 },
+    ];
+
+    nebulaConfigs.forEach((nCfg, nIdx) => {
+      const texDark = createNebulaTexture(false, nCfg.variant);
+      const texLight = createNebulaTexture(true, nCfg.variant);
+      disposableTextures.push(texDark, texLight);
+
+      const nebMat = new THREE.SpriteMaterial({
+        map: isLightRef.current ? texLight : texDark,
+        transparent: true,
+        blending: isLightRef.current ? THREE.NormalBlending : THREE.AdditiveBlending,
+        opacity: isLightRef.current ? 0.32 : 0.76,
+        depthWrite: false,
+      });
+      disposableMaterials.push(nebMat);
+
+      const sprite = new THREE.Sprite(nebMat);
+      sprite.position.set(nCfg.x, nCfg.y, nCfg.z);
+      sprite.scale.set(nCfg.scale, nCfg.scale, 1);
+      (sprite as any).userData = {
+        baseScale: nCfg.scale,
+        rotSpeed: nCfg.rotSpeed,
+        idx: nIdx,
+      };
+      scene.add(sprite);
+      nebulaData.push({ sprite, texDark, texLight });
+    });
+
     sceneRefs.current = {
       ambientLight,
       hemiLight,
@@ -831,6 +1001,8 @@ export const ThreeHeroCanvas: React.FC = () => {
       glowTexLight,
       orbitLines,
       starsMat,
+      greenStarsMat,
+      nebulaSprites: nebulaData,
     };
 
     // ۴. واکنش نرم و تعاملی به حرکت موس و اسکرول کاربر در سرتاسر صفحه
@@ -902,6 +1074,19 @@ export const ThreeHeroCanvas: React.FC = () => {
           // حرکت خلاف جهت آرام ستارگان پس‌زمینه برای حس عمق فضا
           starField.rotation.y = -mouseCurrent.x * 0.08 + elapsed * 0.012 + scrollFraction * 0.25;
           starField.rotation.x = -mouseCurrent.y * 0.05 + scrollFraction * 0.15;
+
+          // چرخش آرام و چشمک‌زن ستارگان زمردی و تنفس ابرهای سحابی
+          greenStarField.rotation.y = -mouseCurrent.x * 0.06 + elapsed * 0.016 + scrollFraction * 0.22;
+          greenStarField.rotation.x = -mouseCurrent.y * 0.04 + scrollFraction * 0.12;
+
+          nebulaData.forEach(({ sprite }) => {
+            const uData = (sprite as any).userData;
+            if (uData) {
+              sprite.material.rotation = elapsed * uData.rotSpeed;
+              const nPulse = 1 + Math.sin(elapsed * 0.45 + uData.idx * 1.2) * 0.06;
+              sprite.scale.set(uData.baseScale * nPulse, uData.baseScale * nPulse, 1);
+            }
+          });
 
           // چرخش محوری و تپش لطیف هاله خورشید
           sunMesh.rotation.y += dt * 0.22;

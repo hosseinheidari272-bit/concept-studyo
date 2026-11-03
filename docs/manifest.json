@@ -1,0 +1,87 @@
+{
+  "name": "استودیو دیزاین کانسپت | تیزرسازی، رندرینگ سه‌بعدی و توسعه دیجیتال",
+  "short_name": "کانسپت استودیو",
+  "description": "استودیو تخصصی طراحی گرافیک، ساخت تیزر تبلیغاتی، رندرهای سه‌بعدی و توسعه وب‌سایت‌های لوکس و اتوماسیون کسب‌وکار با استانداردهای جهانی.",
+  "lang": "fa-IR",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#04070D",
+  "theme_color": "#04070D",
+  "categories": [
+    "business",
+    "design",
+    "multimedia",
+    "productivity"
+  ],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "ثبت سفارش و استعلام فوری",
+      "short_name": "ثبت سفارش",
+      "description": "مشاهده تعرفه‌ها و ثبت سفارش آنلاین پروژه",
+      "url": "./#services",
+      "icons": [
+        {
+          "src": "./pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "پنل کاربری و کیف پول کوین",
+      "short_name": "پنل کاربری",
+      "description": "ورود به داشبورد و مدیریت موجودی کوین استودیو",
+      "url": "./?page=panel",
+      "icons": [
+        {
+          "src": "./pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "گفت‌وگو و پشتیبانی مدیریت",
+      "short_name": "چت مستقیم",
+      "description": "ارسال پیام، ویس یا فایل مستقیم به مدیریت استودیو",
+      "url": "./#about",
+      "icons": [
+        {
+          "src": "./pwa-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

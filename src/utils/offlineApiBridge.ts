@@ -966,7 +966,9 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
   // On known static hosts (*.github.io, *.netlify.app, etc.) or file://, skip network call to /api/* to avoid 404 console noise
   const hostname = typeof window !== 'undefined' ? window.location.hostname || '' : '';
   const protocol = typeof window !== 'undefined' ? window.location.protocol || '' : '';
+  const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
   const isKnownStaticHost =
+    isOffline ||
     hostname.endsWith('.github.io') ||
     hostname.endsWith('.netlify.app') ||
     hostname.endsWith('.pages.dev') ||
@@ -998,5 +1000,14 @@ export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Pr
 export function installOfflineApiBridge(): void {
   if (typeof window === 'undefined' || bridgeInstalled) return;
   bridgeInstalled = true;
-  getNativeFetch();
+  try {
+    const native = window.fetch.bind(window);
+    capturedNativeFetch = native;
+    window.fetch = async function (input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+      return apiFetch(input, init);
+    };
+  } catch {
+    // Continue gracefully if environment prevents fetch override
+  }
 }
+

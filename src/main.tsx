@@ -3,13 +3,19 @@ import App from './App.tsx';
 import './index.css';
 import { installOfflineApiBridge } from './utils/offlineApiBridge';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 // فعال‌سازی موتور هیبریدی و آفلاین جهت کارکرد ۱۰۰٪ روی GitHub Pages، Netlify، هاست‌های ایرانی و اینترنت ملی
 installOfflineApiBridge();
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
   (window as any).__CONCEPT_STUDIO_MOUNTED__ = true;
-  createRoot(rootElement).render(<App />);
+  createRoot(rootElement).render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
 }
 
 // ثبت سرویس‌ورکر برای کش آفلاین کامل فونت‌ها، استایل‌ها و هسته برنامه

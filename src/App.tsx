@@ -227,30 +227,38 @@ function AppContent() {
     <div
       className={`min-h-screen relative overflow-x-hidden transition-colors duration-500 ${
         isLight
-          ? 'bg-[#F8FAFC] text-slate-900 selection:bg-sky-500/20 selection:text-sky-900'
-          : 'bg-[#04070D] text-slate-100 selection:bg-cyan-500/30 selection:text-cyan-200'
+          ? 'bg-[#F8FAFC] text-slate-900 selection:bg-emerald-500/20 selection:text-emerald-900'
+          : 'bg-[#03070A] text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-200'
       }`}
     >
       {/* نشانگر تعاملی سفارشی دایره‌ای موس (فقط در دستگاه‌های دارای موس دسکتاپ) */}
       <CustomInteractiveCursor />
 
-      {/* پس‌زمینه منظومه شمسی سه‌بعدی (Three.js 3D Solar System Canvas) */}
+      {/* پس‌زمینه منظومه شمسی سه‌بعدی و سحابی کیهانی (Three.js 3D Solar System & Emerald Nebula Canvas) */}
       <ThreeHeroCanvas />
 
-      {/* نورهای اتمسفریک ظریف در پس‌زمینه متناسب با تم روشن و تیره */}
+      {/* نورهای اتمسفریک سحابی زمردی و فیروزه‌ای در پس‌زمینه برای جان بخشیدن به عمق کهکشان */}
       <div
-        className={`absolute top-0 left-1/2 -translate-x-1/2 w-[750px] h-[420px] pointer-events-none z-0 transition-opacity duration-500 ${
+        className={`absolute top-0 left-1/2 -translate-x-1/2 w-[850px] h-[520px] pointer-events-none z-0 transition-opacity duration-500 ${
           isLight
-            ? 'bg-[radial-gradient(ellipse_at_center,rgba(14,165,233,0.14)_0%,rgba(255,255,255,0)_70%)]'
-            : 'bg-[radial-gradient(ellipse_at_center,rgba(0,180,255,0.09)_0%,rgba(0,0,0,0)_70%)]'
+            ? 'bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.12)_0%,rgba(14,165,233,0.08)_45%,transparent_75%)]'
+            : 'bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.14)_0%,rgba(5,150,105,0.06)_40%,transparent_75%)]'
         }`}
         aria-hidden="true"
       />
       <div
-        className={`absolute top-[850px] right-0 w-[550px] h-[450px] pointer-events-none z-0 transition-opacity duration-500 ${
+        className={`absolute top-[750px] right-0 w-[620px] h-[550px] pointer-events-none z-0 transition-opacity duration-500 ${
           isLight
-            ? 'bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.1)_0%,rgba(255,255,255,0)_70%)]'
-            : 'bg-[radial-gradient(ellipse_at_center,rgba(0,229,255,0.06)_0%,rgba(0,0,0,0)_70%)]'
+            ? 'bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.10)_0%,rgba(59,130,246,0.06)_50%,transparent_75%)]'
+            : 'bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.09)_0%,rgba(20,184,166,0.05)_50%,transparent_75%)]'
+        }`}
+        aria-hidden="true"
+      />
+      <div
+        className={`absolute top-[1800px] left-0 w-[600px] h-[520px] pointer-events-none z-0 transition-opacity duration-500 ${
+          isLight
+            ? 'bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.08)_0%,transparent_70%)]'
+            : 'bg-[radial-gradient(ellipse_at_center,rgba(5,150,105,0.08)_0%,rgba(6,182,212,0.04)_45%,transparent_70%)]'
         }`}
         aria-hidden="true"
       />
@@ -333,22 +341,20 @@ function AppContent() {
           title="گفت‌وگو و پشتیبانی مستقیم با مدیریت"
           className={`btn-shimmer group relative flex items-center gap-2.5 px-4 sm:px-5 py-3 min-h-[50px] rounded-full border transition-all duration-300 transform hover:-translate-y-0.5 hover:scale-[1.03] active:scale-95 ${
             isLight
-              ? 'bg-white/95 hover:bg-sky-50 border-sky-400/80 hover:border-sky-500 text-slate-900 shadow-[0_10px_30px_rgba(15,23,42,0.16)] hover:shadow-[0_14px_35px_rgba(2,132,199,0.28)]'
-              : 'bg-slate-900/95 hover:bg-slate-850 border-cyan-500/55 hover:border-cyan-400 text-white shadow-[0_8px_30px_rgba(0,0,0,0.65)] hover:shadow-[0_10px_32px_rgba(0,229,255,0.35)]'
+              ? 'bg-white/95 hover:bg-emerald-50/60 border-emerald-500/60 hover:border-emerald-500 text-slate-900 shadow-[0_10px_30px_rgba(15,23,42,0.14)] hover:shadow-[0_14px_35px_rgba(16,185,129,0.25)]'
+              : 'bg-slate-900/95 hover:bg-slate-850 border-emerald-500/50 hover:border-emerald-400 text-white shadow-[0_8px_30px_rgba(0,0,0,0.65)] hover:shadow-[0_10px_35px_rgba(16,185,129,0.35)]'
           }`}
         >
           <div
             className={`relative flex items-center justify-center w-8 h-8 rounded-full ${
-              isLight ? 'bg-sky-500/15 text-sky-600' : 'bg-cyan-500/20 text-cyan-400'
+              isLight ? 'bg-emerald-500/15 text-emerald-600' : 'bg-emerald-500/20 text-emerald-400'
             }`}
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <span
-              className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${
-                isLight ? 'bg-sky-500' : 'bg-cyan-400'
-              }`}
+              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"
             />
           </div>
           <div className="text-right">

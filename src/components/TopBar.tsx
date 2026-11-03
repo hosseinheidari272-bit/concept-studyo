@@ -150,8 +150,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             <div
               className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-105 shrink-0 ${
                 isLight
-                  ? 'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-[0_4px_14px_rgba(2,132,199,0.3)] border border-sky-400/40'
-                  : 'bg-gradient-to-br from-cyan-500/25 via-blue-600/20 to-slate-900 border border-cyan-400/40 text-cyan-300 shadow-[0_0_16px_rgba(0,229,255,0.3)]'
+                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.3)] border border-emerald-400/40'
+                  : 'bg-gradient-to-br from-emerald-500/30 via-teal-600/20 to-slate-900 border border-emerald-400/40 text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.35)]'
               }`}
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -261,11 +261,11 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="ارسال پیام و استعلام مستقیم با مدیریت"
             className={`hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl border text-xs font-bold transition-all active:scale-95 shadow-xs shrink-0 ${
               isLight
-                ? 'bg-slate-100/90 hover:bg-sky-50 text-slate-800 hover:text-sky-700 border-slate-200/90 hover:border-sky-300'
-                : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border-slate-700/80 hover:border-cyan-500/50'
+                ? 'bg-emerald-50/70 hover:bg-emerald-100/80 text-emerald-800 hover:text-emerald-900 border-emerald-200/90 hover:border-emerald-300'
+                : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border-emerald-500/40 hover:border-emerald-400'
             }`}
           >
-            <svg className={`w-3.5 h-3.5 ${isLight ? 'text-sky-600' : 'text-cyan-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <svg className={`w-3.5 h-3.5 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <span>مشاوره سریع</span>

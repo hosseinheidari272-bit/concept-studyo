@@ -102,14 +102,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
         <div
           className={`inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full border text-xs font-bold backdrop-blur-md transition-colors ${
             isLight
-              ? 'bg-white/95 border-slate-200/95 text-slate-800 shadow-[0_4px_20px_rgba(15,23,42,0.06)]'
-              : 'bg-slate-900/90 border-slate-700/80 text-slate-100 shadow-sm'
+              ? 'bg-white/95 border-emerald-200/80 text-slate-800 shadow-[0_4px_20px_rgba(16,185,129,0.08)]'
+              : 'bg-slate-900/90 border-emerald-500/35 text-slate-100 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981] animate-ping" />
           <span>مهندسی تصویر، رندرهای سه‌بعدی و توسعه وب با استاندارد جهانی</span>
           <span className={isLight ? 'text-slate-300' : 'text-slate-600'}>·</span>
-          <span className={`font-mono text-[11px] font-black ${isLight ? 'text-sky-600' : 'text-cyan-300'}`}>
+          <span className={`font-mono text-[11px] font-black ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`}>
             CONCEPT 2026
           </span>
         </div>
@@ -127,8 +127,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
           <span
             className={
               isLight
-                ? 'bg-gradient-to-l from-sky-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent'
-                : 'bg-gradient-to-l from-cyan-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent'
+                ? 'bg-gradient-to-l from-emerald-600 via-teal-600 to-sky-600 bg-clip-text text-transparent'
+                : 'bg-gradient-to-l from-emerald-400 via-teal-300 to-cyan-200 bg-clip-text text-transparent'
             }
           >
             تیزرسازی تبلیغاتی، رندرهای سه‌بعدی
@@ -150,8 +150,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
               joltWordActive
                 ? 'text-red-500 font-black scale-120 px-1.5 underline decoration-red-500 decoration-2 underline-offset-4'
                 : isLight
-                ? 'text-sky-700 font-extrabold'
-                : 'text-cyan-300 font-extrabold'
+                ? 'text-emerald-700 font-extrabold'
+                : 'text-emerald-300 font-extrabold'
             }`}
           >
             شگفتی و قدرتش هیجان‌زده شوید!
@@ -175,8 +175,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
           data-cursor-text="خدمات"
           className={`btn-shimmer w-full sm:w-auto px-8 py-4 min-h-[52px] rounded-2xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2.5 transform hover:-translate-y-0.5 active:scale-95 ${
             isLight
-              ? 'bg-sky-600 hover:bg-sky-500 text-white shadow-[0_10px_28px_rgba(2,132,199,0.32)] hover:shadow-[0_16px_36px_rgba(2,132,199,0.45)]'
-              : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_25px_rgba(0,229,255,0.35)] hover:shadow-[0_0_38px_rgba(0,229,255,0.55)]'
+              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-[0_10px_28px_rgba(5,150,105,0.32)] hover:shadow-[0_16px_36px_rgba(5,150,105,0.45)]'
+              : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:via-teal-400 hover:to-cyan-400 text-slate-950 shadow-[0_0_28px_rgba(16,185,129,0.4)] hover:shadow-[0_0_42px_rgba(16,185,129,0.6)]'
           }`}
         >
           <span>مشاهده تعرفه‌ها و شروع پروژه</span>
@@ -191,11 +191,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
           data-cursor-text="مشاوره"
           className={`w-full sm:w-auto px-7 py-4 min-h-[52px] rounded-2xl border font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2.5 backdrop-blur-md hover:-translate-y-0.5 active:scale-95 ${
             isLight
-              ? 'bg-white/95 hover:bg-sky-50/80 text-slate-800 hover:text-sky-700 border-slate-300/90 hover:border-sky-400 shadow-[0_6px_20px_rgba(15,23,42,0.06)]'
-              : 'bg-slate-900/95 hover:bg-slate-800 text-slate-100 hover:text-white border-slate-700/90 hover:border-cyan-400/50'
+              ? 'bg-white/95 hover:bg-emerald-50/70 text-slate-800 hover:text-emerald-700 border-slate-300/90 hover:border-emerald-400 shadow-[0_6px_20px_rgba(15,23,42,0.06)]'
+              : 'bg-slate-900/95 hover:bg-slate-800 text-slate-100 hover:text-white border-slate-700/90 hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.18)]'
           }`}
         >
-          <svg className={`w-4 h-4 ${isLight ? 'text-sky-600' : 'text-cyan-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <svg className={`w-4 h-4 ${isLight ? 'text-emerald-600' : 'text-emerald-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
           <span>گفت‌وگوی مستقیم با مدیریت</span>
@@ -207,8 +207,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
         <div
           className={`grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5 rounded-3xl border backdrop-blur-xl transition-colors ${
             isLight
-              ? 'bg-white/95 border-slate-200/95 shadow-[0_18px_45px_rgba(15,23,42,0.07)]'
-              : 'bg-[#080D19]/90 border-slate-800/90 shadow-[0_15px_40px_rgba(0,0,0,0.45)]'
+              ? 'bg-white/95 border-emerald-100 shadow-[0_18px_45px_rgba(15,23,42,0.07)]'
+              : 'bg-[#060D14]/90 border-slate-800/90 shadow-[0_15px_40px_rgba(0,0,0,0.45)]'
           }`}
         >
           {metrics.map((m, idx) => {
@@ -231,8 +231,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
                     isJolted
                       ? 'text-red-500 scale-120'
                       : isLight
-                      ? 'text-sky-600'
-                      : 'text-cyan-300'
+                      ? 'text-emerald-600'
+                      : 'text-emerald-400'
                   }`}
                 >
                   {m.value}
