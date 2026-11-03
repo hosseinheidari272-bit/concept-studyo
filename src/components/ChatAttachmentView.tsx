@@ -263,7 +263,7 @@ export const PendingAttachmentsPreview: React.FC<PendingAttachmentsPreviewProps>
           </div>
           <button
             type="button"
-            onClick={() => onRemove(att.id)}
+            onClick={() => onRemove(att.id || '')}
             className="w-5 h-5 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white text-[10px] flex items-center justify-center"
             title="حذف پیوست"
           >

@@ -339,10 +339,15 @@ export async function handleLocalApiRequest(
     const percent = Number(bodyData.percentChange || 0);
     if (!Number.isNaN(percent) && percent !== 0) {
       const factor = 1 + percent / 100;
-      db.services = db.services.map((s) => ({
-        ...s,
-        basePriceToman: Math.max(50000, Math.round((s.basePriceToman * factor) / 10000) * 10000),
-      }));
+      db.services = db.services.map((s) => {
+        const currentPrice = s.startingPrice || s.basePriceToman || 1000000;
+        const newPrice = Math.max(50000, Math.round((currentPrice * factor) / 10000) * 10000);
+        return {
+          ...s,
+          startingPrice: newPrice,
+          basePriceToman: newPrice,
+        };
+      });
       saveLocalDb(db, storage);
     }
     return jsonResponse({ services: db.services });
@@ -399,7 +404,7 @@ export async function handleLocalApiRequest(
       username,
       fullName,
       phone,
-      role: 'user',
+      role: 'client',
       coins: 0,
       coinEnabled: false,
       passwordHash: simpleHash(password),
@@ -547,6 +552,7 @@ export async function handleLocalApiRequest(
         username: currentUser.username,
         fullName: currentUser.fullName,
         type: 'spend',
+        amount: coinsSpent,
         coins: coinsSpent,
         amountToman: totalPriceToman,
         status: 'approved',
@@ -567,6 +573,8 @@ export async function handleLocalApiRequest(
       customerContact: String(bodyData.customerContact || currentUser?.phone || ''),
       quantity,
       priority,
+      urgency: priority,
+      calculatedPrice: totalPriceToman,
       description: String(bodyData.description || ''),
       estimatedTotalToman: totalPriceToman,
       paymentMethod,
@@ -640,8 +648,10 @@ export async function handleLocalApiRequest(
       userId: currentUser.id,
       username: currentUser.username,
       fullName: currentUser.fullName,
+      userFullName: currentUser.fullName,
       type: 'topup_request',
       packageId: bodyData.packageId,
+      amount: coins,
       coins,
       amountToman,
       status: 'pending',
@@ -672,8 +682,10 @@ export async function handleLocalApiRequest(
       userId: currentUser.id,
       username: currentUser.username,
       fullName: currentUser.fullName,
+      userFullName: currentUser.fullName,
       type: 'admin_grant',
       packageId: bodyData.packageId,
+      amount: coins,
       coins,
       amountToman,
       status: 'approved',
@@ -701,7 +713,9 @@ export async function handleLocalApiRequest(
       userId: targetUser.id,
       username: targetUser.username,
       fullName: targetUser.fullName,
+      userFullName: targetUser.fullName,
       type: 'admin_grant',
+      amount: delta,
       coins: delta,
       amountToman: Math.abs(delta) * (db.settings.coinSystem.unitPriceToman || 500000),
       status: 'approved',
@@ -726,7 +740,8 @@ export async function handleLocalApiRequest(
     if (action === 'approved') {
       const targetUser = db.users.find((u) => u.id === tx.userId);
       if (targetUser) {
-        targetUser.coins = (targetUser.coins || 0) + tx.coins;
+        const granted = tx.amount || tx.coins || 0;
+        targetUser.coins = (targetUser.coins || 0) + granted;
       }
     }
     saveLocalDb(db, storage);
@@ -782,10 +797,13 @@ export async function handleLocalApiRequest(
     const msg: ChatMessage = {
       id: `msg_${Date.now()}`,
       sender: currentUser?.role === 'admin' ? 'admin' : 'user',
+      senderRole: currentUser?.role === 'admin' ? 'admin' : 'user',
       senderName: String(bodyData.customerName || currentUser?.fullName || 'کاربر'),
       text: String(bodyData.message || ''),
       attachment: bodyData.attachment,
+      timestamp: now,
       createdAt: now,
+      read: true,
     };
     const thread: ChatThread = {
       id: `thd_${Date.now()}`,
@@ -795,8 +813,8 @@ export async function handleLocalApiRequest(
       subject: String(bodyData.subject || 'گفت‌وگو و مشاوره پروژه'),
       relatedOrderId: bodyData.relatedOrderId,
       status: 'open',
-      unreadByAdmin: true,
-      unreadByUser: false,
+      unreadByAdmin: 1,
+      unreadByUser: 0,
       messages: [msg],
       updatedAt: now,
       createdAt: now,
@@ -810,8 +828,8 @@ export async function handleLocalApiRequest(
   if (threadGetMatch && method === 'GET') {
     const thread = db.chatThreads.find((t) => t.id === threadGetMatch[1]);
     if (!thread) return jsonResponse({ error: 'گفت‌وگو یافت نشد' }, 404);
-    if (currentUser?.role === 'admin') thread.unreadByAdmin = false;
-    else thread.unreadByUser = false;
+    if (currentUser?.role === 'admin') thread.unreadByAdmin = 0;
+    else thread.unreadByUser = 0;
     saveLocalDb(db, storage);
     return jsonResponse({ thread });
   }
@@ -821,18 +839,22 @@ export async function handleLocalApiRequest(
     const thread = db.chatThreads.find((t) => t.id === threadMsgMatch[1]);
     if (!thread) return jsonResponse({ error: 'گفت‌وگو یافت نشد' }, 404);
     const isSenderAdmin = currentUser?.role === 'admin';
+    const now = new Date().toISOString();
     const msg: ChatMessage = {
       id: `msg_${Date.now()}`,
       sender: isSenderAdmin ? 'admin' : 'user',
+      senderRole: isSenderAdmin ? 'admin' : 'user',
       senderName: isSenderAdmin ? 'مدیریت استودیو' : thread.customerName,
       text: String(bodyData.text || ''),
       attachment: bodyData.attachment,
-      createdAt: new Date().toISOString(),
+      timestamp: now,
+      createdAt: now,
+      read: false,
     };
     thread.messages.push(msg);
-    thread.updatedAt = msg.createdAt;
-    thread.unreadByAdmin = !isSenderAdmin;
-    thread.unreadByUser = isSenderAdmin;
+    thread.updatedAt = now;
+    thread.unreadByAdmin = isSenderAdmin ? 0 : 1;
+    thread.unreadByUser = isSenderAdmin ? 1 : 0;
     saveLocalDb(db, storage);
     return jsonResponse({ thread, message: msg });
   }

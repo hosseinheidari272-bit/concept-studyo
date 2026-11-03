@@ -612,7 +612,7 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                           </span>
                           <span>•</span>
                           <span className="text-[10px] text-slate-500">
-                            {new Date(msg.timestamp).toLocaleTimeString('fa-IR', {
+                            {new Date(msg.timestamp || msg.createdAt || Date.now()).toLocaleTimeString('fa-IR', {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}

@@ -214,39 +214,51 @@
       }
     </style>
 
-    <!-- بوت‌لودر هوشمند: اگر سایت بدون بیلد مستقیم از شاخه اصلی گیت‌هاب (main / root) اجرا شود، به صورت خودکار فایل‌های کامپایل‌شده داخل پوشه dist را بارگذاری می‌کند -->
+    <!-- بوت‌لودر هوشمند ۲ لایه: اگر سایت مستقیم از روت مخزن گیت‌هاب اجرا شود بدون نیاز به اکشنز، باندل کامپایل‌شده را لود می‌کند -->
     <script>
       window.__bootPrebuiltBundle = function () {
         if (
           window.__CONCEPT_STUDIO_MOUNTED__ ||
           window.__CONCEPT_BOOT_TRIGGERED__ ||
-          document.querySelector('script[src*="@vite/client"]') ||
-          document.querySelector('script[src*="assets/app.js"]')
+          document.querySelector('script[src*="@vite/client"]')
         ) {
           return;
         }
         window.__CONCEPT_BOOT_TRIGGERED__ = true;
+
         var link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = './dist/assets/app.css';
+        link.href = './assets/app.css';
+        link.onerror = function () {
+          var fallbackLink = document.createElement('link');
+          fallbackLink.rel = 'stylesheet';
+          fallbackLink.href = './dist/assets/app.css';
+          document.head.appendChild(fallbackLink);
+        };
         document.head.appendChild(link);
 
         var script = document.createElement('script');
         script.type = 'module';
-        script.src = './dist/assets/app.js';
+        script.crossOrigin = 'anonymous';
+        script.src = './assets/app.js';
+        script.onerror = function () {
+          var fallbackScript = document.createElement('script');
+          fallbackScript.type = 'module';
+          fallbackScript.crossOrigin = 'anonymous';
+          fallbackScript.src = './dist/assets/app.js';
+          document.body.appendChild(fallbackScript);
+        };
         document.body.appendChild(script);
       };
+
       window.addEventListener('DOMContentLoaded', function () {
-        if (
-          !document.querySelector('script[src*="@vite/client"]') &&
-          !document.querySelector('script[src*="assets/app.js"]')
-        ) {
+        if (!document.querySelector('script[src*="@vite/client"]')) {
           setTimeout(function () {
             var root = document.getElementById('root');
             if (!window.__CONCEPT_STUDIO_MOUNTED__ && root && root.children.length === 0) {
               window.__bootPrebuiltBundle();
             }
-          }, 400);
+          }, 300);
         }
       });
     </script>

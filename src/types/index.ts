@@ -64,14 +64,19 @@ export interface CoinTransaction {
   id: string;
   userId: string;
   username: string;
-  userFullName: string;
-  type: 'mint_grant' | 'admin_grant' | 'purchase_topup' | 'topup_request' | 'order_payment' | 'admin_deduct';
+  userFullName?: string;
+  fullName?: string;
+  type: 'mint_grant' | 'admin_grant' | 'purchase_topup' | 'topup_request' | 'order_payment' | 'admin_deduct' | 'spend';
   amount: number;
+  coins?: number;
   balanceAfter?: number;
   priceToman?: number;
+  amountToman?: number;
+  packageId?: string;
+  signature?: string;
   description?: string;
   note?: string;
-  status: 'completed' | 'pending' | 'rejected';
+  status: 'completed' | 'pending' | 'rejected' | 'approved';
   createdAt: string;
 }
 
@@ -85,6 +90,7 @@ export interface ServiceItem {
   category: ServiceCategory;
   tags: string[];
   startingPrice: number;
+  basePriceToman?: number;
   deliveryTime: string;
   popular?: boolean;
   deliverables: string[];
@@ -107,6 +113,8 @@ export interface UserProfile {
   createdAt?: string;
 }
 
+export type UserItem = UserProfile;
+
 export interface OrderItem {
   id: string;
   trackingCode: string;
@@ -114,14 +122,19 @@ export interface OrderItem {
   serviceTitle: string;
   customerName: string;
   customerContact: string;
-  urgency: 'normal' | 'express' | 'vip';
+  urgency?: 'normal' | 'express' | 'vip';
+  priority?: 'normal' | 'express' | 'vip';
   calculatedPrice: number;
+  estimatedTotalToman?: number;
+  quantity?: number;
+  paymentMethod?: string;
   paidWithCoins?: boolean;
   coinsSpent?: number;
   description?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   adminNote?: string;
   deliveryLink?: string;
+  deliveryFileUrl?: string;
   userId?: string;
   createdAt: string;
   completedAt?: string;
@@ -141,21 +154,25 @@ export interface AdminStats {
 }
 
 export interface ChatAttachment {
-  id: string;
+  id?: string;
   url: string;
   type: 'image' | 'video' | 'audio' | 'file';
   name: string;
   size?: number;
+  mimeType?: string;
 }
 
 export interface ChatMessage {
   id: string;
-  senderRole: 'admin' | 'user';
+  sender?: 'admin' | 'user';
+  senderRole?: 'admin' | 'user';
   senderName: string;
   text: string;
+  attachment?: ChatAttachment;
   attachments?: ChatAttachment[];
-  timestamp: string;
-  read: boolean;
+  timestamp?: string;
+  createdAt?: string;
+  read?: boolean;
 }
 
 export interface ChatThread {
@@ -166,6 +183,7 @@ export interface ChatThread {
   subject: string;
   orderId?: string;
   orderTitle?: string;
+  relatedOrderId?: string;
   status: 'open' | 'closed';
   unreadByAdmin: number;
   unreadByUser: number;
@@ -185,9 +203,10 @@ export interface TestimonialItem {
   initials?: string;
   outcome: string;
   rating: number; // 1-5
-  date: string;
+  date?: string;
   quote: string;
   verified?: boolean;
+  verifiedCode?: string;
   status?: 'pending' | 'approved' | 'rejected';
   userId?: string;
   orderId?: string;
