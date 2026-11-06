@@ -92,6 +92,7 @@ export interface ServiceItem {
   startingPrice: number;
   basePriceToman?: number;
   deliveryTime: string;
+  deliveryNote?: string;
   popular?: boolean;
   deliverables: string[];
   discountPercent?: number;

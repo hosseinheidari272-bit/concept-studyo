@@ -11,6 +11,7 @@ import {
   PaymentGatewaySettings,
   TestimonialItem,
 } from '../types';
+import { validateIranianMobileDetailed, normalizeIranianPhone } from './phoneUtils';
 
 const STORAGE_KEY = 'concept_studio_local_db_v1';
 
@@ -392,18 +393,39 @@ export async function handleLocalApiRequest(
     const username = String(bodyData.username || '').trim();
     const password = String(bodyData.password || '');
     const fullName = String(bodyData.fullName || username).trim();
-    const phone = String(bodyData.phone || '').trim();
+    const rawPhone = String(bodyData.phone || '').trim();
+
     if (!username || password.length < 4) {
       return jsonResponse({ error: 'نام کاربری و رمز عبور معتبر الزامی است' }, 400);
     }
     if (db.users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
       return jsonResponse({ error: 'این نام کاربری قبلاً ثبت شده است' }, 400);
     }
+
+    if (!rawPhone) {
+      return jsonResponse({ error: 'شماره تلفن همراه الزامی است' }, 400);
+    }
+
+    const phoneValidation = validateIranianMobileDetailed(rawPhone);
+    if (!phoneValidation.isValid) {
+      return jsonResponse({ error: phoneValidation.error || 'شماره تلفن همراه نامعتبر است' }, 400);
+    }
+
+    const cleanPhone = phoneValidation.normalized;
+    const duplicatePhoneUser = db.users.find((u) => {
+      if (!u.phone) return false;
+      return normalizeIranianPhone(u.phone) === cleanPhone;
+    });
+
+    if (duplicatePhoneUser) {
+      return jsonResponse({ error: 'این شماره موبایل قبلاً در سیستم ثبت شده است. لطفاً وارد شوید.' }, 409);
+    }
+
     const newUser: UserItem & { passwordHash: string } = {
       id: `usr_${Date.now()}`,
       username,
       fullName,
-      phone,
+      phone: cleanPhone,
       role: 'client',
       coins: 0,
       coinEnabled: false,
@@ -423,6 +445,106 @@ export async function handleLocalApiRequest(
 
   if (pathname === '/api/auth/logout' && method === 'POST') {
     return jsonResponse({ ok: true });
+  }
+
+  // بررسی شماره تلفن در دیتابیس با اعتبارسنجی رجکس ایرانی (آفلاین و آنلاین)
+  if (pathname === '/api/users/check-phone' && (method === 'GET' || method === 'POST')) {
+    const rawPhone = (method === 'GET' ? parsedUrl.searchParams.get('phone') : bodyData.phone) || '';
+    if (!rawPhone) {
+      return jsonResponse({ error: 'شماره تلفن ارسال نشده است' }, 400);
+    }
+
+    const phoneValidation = validateIranianMobileDetailed(String(rawPhone));
+    if (!phoneValidation.isValid) {
+      return jsonResponse({
+        exists: false,
+        registered: false,
+        isValid: false,
+        error: phoneValidation.error,
+        normalized: phoneValidation.normalized,
+      });
+    }
+
+    const clean = phoneValidation.normalized;
+
+    const existingUser = db.users.find((u) => {
+      if (!u.phone) return false;
+      return normalizeIranianPhone(u.phone) === clean;
+    });
+
+    if (existingUser) {
+      return jsonResponse({
+        exists: true,
+        registered: true,
+        isValid: true,
+        operatorName: phoneValidation.operatorName,
+        source: 'user',
+        user: {
+          id: existingUser.id,
+          fullName: existingUser.fullName,
+          username: existingUser.username,
+          role: existingUser.role,
+        },
+        message: `این شماره متعلق به کاربر ثبت‌شده «${existingUser.fullName}» در سیستم است.`,
+      });
+    }
+
+    const existingOrder = db.orders.find((o) => o.customerContact && o.customerContact.includes(clean));
+    const existingThread = db.chatThreads.find((t) => t.customerContact && t.customerContact.includes(clean));
+
+    if (existingOrder || existingThread) {
+      const lastCustomerName = existingOrder?.customerName || existingThread?.customerName || 'مشتری استودیو';
+      return jsonResponse({
+        exists: true,
+        registered: false,
+        isValid: true,
+        operatorName: phoneValidation.operatorName,
+        source: 'history',
+        lastCustomerName,
+        message: `این شماره قبلاً با نام «${lastCustomerName}» برای سفارش یا گفت‌وگو در سیستم استفاده شده است.`,
+      });
+    }
+
+    return jsonResponse({
+      exists: false,
+      registered: false,
+      isValid: true,
+      operatorName: phoneValidation.operatorName,
+    });
+  }
+
+  // بروزرسانی پروفایل کاربری در حالت لوکال / هاست استاتیک
+  if (pathname === '/api/users/profile' && method === 'PUT') {
+    if (!currentUser) return jsonResponse({ error: 'احراز هویت الزامی است' }, 401);
+    const fullName = bodyData.fullName ? String(bodyData.fullName).trim() : undefined;
+    const rawPhone = bodyData.phone ? String(bodyData.phone).trim() : undefined;
+
+    let cleanPhone: string | undefined = undefined;
+    if (rawPhone !== undefined) {
+      const pVal = validateIranianMobileDetailed(rawPhone);
+      if (!pVal.isValid) {
+        return jsonResponse({ error: pVal.error || 'شماره موبایل نامعتبر است' }, 400);
+      }
+      cleanPhone = pVal.normalized;
+      const collision = db.users.find(
+        (u) => u.id !== currentUser.id && u.phone && normalizeIranianPhone(u.phone) === cleanPhone
+      );
+      if (collision) {
+        return jsonResponse({ error: 'این شماره موبایل قبلاً برای حساب کاربری دیگری ثبت شده است' }, 409);
+      }
+    }
+
+    const userIdx = db.users.findIndex((u) => u.id === currentUser.id);
+    if (userIdx === -1) return jsonResponse({ error: 'کاربر یافت نشد' }, 404);
+
+    if (fullName) db.users[userIdx].fullName = fullName;
+    if (cleanPhone) db.users[userIdx].phone = cleanPhone;
+
+    saveLocalDb(db, storage);
+    return jsonResponse({
+      message: 'اطلاعات حساب با موفقیت بروزرسانی شد',
+      user: sanitizeUser(db.users[userIdx]),
+    });
   }
 
   // 6. Testimonials

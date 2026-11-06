@@ -6,6 +6,11 @@ import { CoinEmblem, COIN_DESIGN_CATALOG } from './CoinBadge';
 import { WalletBannerSkeleton, CoinPackageSkeleton } from './LoadingSkeleton';
 import { formatPersianPrice, toPersianDigits } from '../utils/persianDate';
 import { apiFetch as fetch } from '../utils/offlineApiBridge';
+import {
+  normalizeIranianPhone,
+  validateIranianMobileDetailed,
+  PHONE_VERIFICATION_RULES,
+} from '../utils/phoneUtils';
 
 interface UserPanelPageProps {
   coinSystem: CoinSystemSettings;
@@ -25,13 +30,28 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
   const { user, token, isAdmin, openAuthModal, refreshUser, logout } = useAuth();
   const { isLight, toggleTheme } = useTheme();
 
-  const [activeSection, setActiveSection] = useState<'wallet' | 'orders' | 'transactions'>('wallet');
+  const [activeSection, setActiveSection] = useState<'wallet' | 'orders' | 'transactions' | 'profile'>('wallet');
   const [customCoinsInput, setCustomCoinsInput] = useState<string>('3');
   const [requestNote, setRequestNote] = useState<string>('');
   const [isSubmittingTopup, setIsSubmittingTopup] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedCard, setCopiedCard] = useState(false);
   const [copiedSheba, setCopiedSheba] = useState(false);
+
+  // وضعیت ویرایش پروفایل کاربری و اعتبارسنجی شماره تماس
+  const [profileFullName, setProfileFullName] = useState(user?.fullName || '');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
+  const [profilePhoneError, setProfilePhoneError] = useState('');
+  const [profileOperator, setProfileOperator] = useState<string | null>(null);
+  const [profilePhoneCheck, setProfilePhoneCheck] = useState<{
+    exists: boolean;
+    registered?: boolean;
+    user?: { fullName: string; username: string };
+    message?: string;
+  } | null>(null);
+  const [isCheckingProfilePhone, setIsCheckingProfilePhone] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const copyCardNumber = () => {
     if (!gatewayConfig.cardNumber) return;
@@ -140,6 +160,140 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
   const showFeedback = (type: 'success' | 'error', text: string) => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback(null), 6500);
+  };
+
+  useEffect(() => {
+    if (user) {
+      setProfileFullName(user.fullName || '');
+      const userPhone = user.phone || '';
+      setProfilePhone(userPhone);
+      if (userPhone) {
+        const val = validateIranianMobileDetailed(userPhone);
+        if (val.isValid) {
+          setProfileOperator(val.operatorName || null);
+        }
+      }
+    }
+  }, [user]);
+
+  const handleProfilePhoneChange = (val: string) => {
+    const norm = normalizeIranianPhone(val);
+    setProfilePhone(norm);
+    setProfilePhoneCheck(null);
+    setProfileMessage(null);
+
+    if (!norm) {
+      setProfilePhoneError('');
+      setProfileOperator(null);
+      return;
+    }
+
+    if (!norm.startsWith('09') && norm.length >= 3) {
+      setProfilePhoneError('شماره همراه باید حتماً با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹). شماره‌های نامعتبر مانند ۱۲۳۴۵۶۷۸۹۰۱۱ پذیرفته نمی‌شوند.');
+      setProfileOperator(null);
+      return;
+    }
+
+    if (norm.length >= 11) {
+      const detail = validateIranianMobileDetailed(norm);
+      if (!detail.isValid) {
+        setProfilePhoneError(detail.error || 'شماره موبایل وارد شده نامعتبر است.');
+        setProfileOperator(null);
+      } else {
+        setProfilePhoneError('');
+        setProfileOperator(detail.operatorName || null);
+        checkProfilePhoneUniqueness(norm);
+      }
+    } else {
+      setProfilePhoneError('');
+      setProfileOperator(null);
+    }
+  };
+
+  const checkProfilePhoneUniqueness = async (cleanPhone: string) => {
+    if (!cleanPhone || cleanPhone.length < 11) return;
+    if (user?.phone && normalizeIranianPhone(user.phone) === cleanPhone) {
+      setProfilePhoneCheck(null);
+      return;
+    }
+    setIsCheckingProfilePhone(true);
+    try {
+      const res = await fetch(`/api/users/check-phone?phone=${encodeURIComponent(cleanPhone)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.registered && data.user && data.user.id !== user?.id) {
+          setProfilePhoneCheck(data);
+        } else {
+          setProfilePhoneCheck(null);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsCheckingProfilePhone(false);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileMessage(null);
+
+    if (!profileFullName.trim()) {
+      setProfileMessage({ type: 'error', text: 'نام و نام خانوادگی الزامی است' });
+      return;
+    }
+
+    const val = validateIranianMobileDetailed(profilePhone);
+    if (!val.isValid) {
+      setProfilePhoneError(val.error || 'شماره موبایل نامعتبر است');
+      setProfileMessage({ type: 'error', text: val.error || 'شماره تلفن همراه معتبر ۱۱ رقمی با ۰۹ الزامی است' });
+      return;
+    }
+
+    // بررسی عدم تکراری بودن شماره تلفن در پایگاه داده
+    if (user?.phone && normalizeIranianPhone(user.phone) !== val.normalized) {
+      try {
+        const checkRes = await fetch(`/api/users/check-phone?phone=${encodeURIComponent(val.normalized)}`);
+        if (checkRes.ok) {
+          const checkData = await checkRes.json();
+          if (checkData.registered && checkData.user && checkData.user.id !== user?.id) {
+            setProfileMessage({
+              type: 'error',
+              text: `این شماره موبایل متعلق به حساب کاربری دیگری («${checkData.user.fullName}») است و امکان ثبت تکراری وجود ندارد.`,
+            });
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName: profileFullName.trim(),
+          phone: val.normalized,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProfileMessage({ type: 'success', text: data.message || 'مشخصات حساب شما با موفقیت بروزرسانی شد' });
+        await refreshUser();
+      } else {
+        setProfileMessage({ type: 'error', text: data.error || 'خطا در ذخیره اطلاعات' });
+      }
+    } catch {
+      setProfileMessage({ type: 'error', text: 'خطای ارتباط با سرور' });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const fetchUserData = async () => {
@@ -578,6 +732,20 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
                 }`}
               >
                 <span>📜 تاریخچه تراکنش‌های سکه ({toPersianDigits(transactions.length)})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveSection('profile')}
+                className={`px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeSection === 'profile'
+                    ? 'bg-[#07090E] text-amber-300 border-2 border-amber-400 shadow-[0_6px_20px_rgba(0,0,0,0.3)]'
+                    : isLight
+                    ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                    : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800'
+                }`}
+              >
+                <span>👤 اطلاعات حساب و شماره تماس</span>
               </button>
             </div>
 
@@ -1115,6 +1283,212 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
                     </div>
                   ))
                 )}
+              </div>
+            )}
+
+            {/* ===================================================================== */}
+            {/* بخش ۴: اطلاعات حساب کاربری، شماره تلفن همراه و قوانین صحت اطلاعات */}
+            {/* ===================================================================== */}
+            {activeSection === 'profile' && (
+              <div className="space-y-6">
+                {/* کارت راهنما و هدر بخش پروفایل */}
+                <div
+                  className={`p-6 rounded-3xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                    isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <h3 className="text-base sm:text-lg font-black flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                      <span>مشخصات حساب کاربری و شماره تلفن همراه معتبر</span>
+                    </h3>
+                    <p className={`text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                      برای دریافت به موقع پیامک‌های تحویل پروژه، فاکتور و پیگیری سفارشات، شماره همراه باید معتبر و فعال باشد.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-xl text-xs font-mono font-bold bg-[#07090E] text-cyan-300 border border-cyan-500/30">
+                      @{user.username}
+                    </span>
+                  </div>
+                </div>
+
+                {/* پیام بازخورد ذخیره اطلاعات */}
+                {profileMessage && (
+                  <div
+                    className={`p-4 rounded-2xl border text-xs sm:text-sm font-bold flex items-center justify-between gap-3 ${
+                      profileMessage.type === 'success'
+                        ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200'
+                        : 'bg-rose-950/80 border-rose-500 text-rose-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${profileMessage.type === 'success' ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                      <span>{profileMessage.text}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setProfileMessage(null)}
+                      className="text-xs opacity-75 hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* ستون ۲ سهمی: فرم ویرایش مشخصات */}
+                  <div
+                    className={`lg:col-span-2 p-6 sm:p-7 rounded-3xl border space-y-5 ${
+                      isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900/90 border-slate-800'
+                    }`}
+                  >
+                    <h4 className="text-sm font-black border-b border-slate-500/15 pb-3">
+                      ویرایش نام و شماره تلفن همراه
+                    </h4>
+
+                    <form onSubmit={handleSaveProfile} className="space-y-4">
+                      {/* نام کاربری (ثابت) */}
+                      <div>
+                        <label className="block text-xs font-semibold mb-1 opacity-75">
+                          نام کاربری سیستم (شناسه ورود، غیرقابل تغییر):
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={user.username}
+                          className="w-full px-4 py-2.5 rounded-xl border border-slate-700/60 bg-slate-800/40 text-xs sm:text-sm text-slate-400 font-mono cursor-not-allowed"
+                        />
+                      </div>
+
+                      {/* نام و نام خانوادگی */}
+                      <div>
+                        <label className="block text-xs font-semibold mb-1">
+                          نام و نام خانوادگی <span className="text-cyan-400">*</span>:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={profileFullName}
+                          onChange={(e) => setProfileFullName(e.target.value)}
+                          placeholder="مثال: علیرضا محمدی"
+                          className={`w-full px-4 py-2.5 rounded-xl border text-xs sm:text-sm focus:outline-none transition-colors ${
+                            isLight
+                              ? 'bg-slate-50 border-slate-300 text-slate-900 focus:border-cyan-500'
+                              : 'bg-slate-950 border-slate-700 text-white focus:border-cyan-400'
+                          }`}
+                        />
+                      </div>
+
+                      {/* فیلد اعتبارسنجی شماره موبایل با Regex ایرانی */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-semibold">
+                            شماره تلفن همراه (جهت احراز و پیامک تحویل) <span className="text-rose-400">* (الزامی)</span>:
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            {isCheckingProfilePhone && (
+                              <span className="text-[10px] text-cyan-400 flex items-center gap-1">
+                                <span className="w-2 h-2 border border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                                بررسی دیتابیس...
+                              </span>
+                            )}
+                            {profileOperator && !profilePhoneError && !profilePhoneCheck?.registered && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                ✓ اپراتور {profileOperator}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <input
+                          type="tel"
+                          required
+                          dir="ltr"
+                          placeholder="09123456789"
+                          value={profilePhone}
+                          onChange={(e) => handleProfilePhoneChange(e.target.value)}
+                          onBlur={() => profilePhone.length >= 11 && checkProfilePhoneUniqueness(profilePhone)}
+                          maxLength={13}
+                          className={`w-full px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-mono text-right focus:outline-none transition-colors ${
+                            profilePhoneError || (profilePhoneCheck?.registered)
+                              ? 'border-rose-500 focus:border-rose-400 bg-rose-500/5'
+                              : profileOperator
+                              ? 'border-emerald-500/60 focus:border-emerald-400'
+                              : isLight
+                              ? 'bg-slate-50 border-slate-300 text-slate-900 focus:border-cyan-500'
+                              : 'bg-slate-950 border-slate-700 text-white focus:border-cyan-400'
+                          }`}
+                        />
+
+                        {profilePhoneError && (
+                          <p className="mt-1.5 text-[11px] text-rose-300 leading-relaxed flex items-start gap-1">
+                            <span className="text-rose-400 font-bold shrink-0">✕</span>
+                            <span>{profilePhoneError}</span>
+                          </p>
+                        )}
+
+                        {/* اخطار در صورت تکراری بودن شماره در پایگاه داده */}
+                        {profilePhoneCheck?.registered && profilePhoneCheck.user && (
+                          <div className="mt-2.5 p-3 rounded-2xl bg-rose-500/15 border border-rose-500/40 text-xs text-rose-200 space-y-1">
+                            <span className="font-bold flex items-center gap-1.5 text-rose-400">
+                              <span>⛔</span>
+                              <span>شماره موبایل تکراری است!</span>
+                            </span>
+                            <p className="text-[11px] text-slate-300 leading-relaxed">
+                              این شماره موبایل قبلاً برای حساب کاربری «<strong className="text-white">{profilePhoneCheck.user.fullName}</strong>» ثبت گردیده است. طبق قوانین پایگاه داده، هر شماره تلفن تنها به یک حساب اختصاص می‌یابد.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 flex items-center justify-end">
+                        <button
+                          type="submit"
+                          disabled={isSavingProfile || Boolean(profilePhoneError) || Boolean(profilePhoneCheck?.registered)}
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-extrabold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {isSavingProfile ? 'در حال ذخیره و بررسی...' : 'ذخیره تغییرات شماره و پروفایل'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* ستون ۱ سهمی: جعبه اختصاصی قوانین رسمی استودیو در مورد صحت اطلاعات */}
+                  <div
+                    className={`p-6 rounded-3xl border space-y-4 ${
+                      isLight ? 'bg-amber-50/70 border-amber-300/80 text-slate-900' : 'bg-[#07090E] border-amber-400/40 text-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 border-b border-amber-400/20 pb-3">
+                      <span className="text-lg">⚖️</span>
+                      <h4 className="text-sm font-black text-amber-400">
+                        قوانین صحت اطلاعات تماس
+                      </h4>
+                    </div>
+
+                    <div className="space-y-3 text-xs leading-relaxed">
+                      <p className={isLight ? 'text-slate-700' : 'text-slate-300'}>
+                        {PHONE_VERIFICATION_RULES.full}
+                      </p>
+
+                      <div className="p-3 rounded-2xl bg-amber-400/10 border border-amber-400/30 text-[11px] text-amber-200 space-y-1.5">
+                        <strong className="text-amber-300 block font-bold">
+                          نمونه‌های غیرمجاز و مسدودشونده:
+                        </strong>
+                        <ul className="list-disc list-inside space-y-0.5 text-slate-300">
+                          <li>شماره‌های ساختگی مانند <span className="font-mono text-rose-300">123456789011</span></li>
+                          <li>ارقام تکراری مانند <span className="font-mono text-rose-300">09111111111</span></li>
+                          <li>پیش‌شماره‌های نامعتبر خارج از شبکه رسمی ایران</li>
+                        </ul>
+                      </div>
+
+                      <div className="text-[11px] text-slate-400 pt-1">
+                        🔒 اطلاعات تماس شما نزد استودیو با استاندارد محرمانگی مطلق (NDA) نگهداری شده و در اختیار هیچ شخص ثالثی قرار نمی‌گیرد.
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </>

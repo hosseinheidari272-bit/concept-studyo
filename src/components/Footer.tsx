@@ -283,6 +283,10 @@ export const Footer: React.FC<FooterProps> = ({
               <span className="text-sky-400">💳</span>
               <span>تسویه مرحله‌ای ۵۰٪ / ۵۰٪</span>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400">📱</span>
+              <span>قانون احراز شماره: الزام شماره معتبر و رد شماره‌های ساختگی (مانند ۱۲۳۴۵۶۷۸۹۰۱۱)</span>
+            </div>
           </div>
 
           {/* کپی‌رایت تمیز و حرفه‌ای */}

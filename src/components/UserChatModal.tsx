@@ -4,6 +4,12 @@ import { ChatThread, ChatAttachment } from '../types';
 import { toPersianDigits } from '../utils/persianDate';
 import { apiFetch as fetch } from '../utils/offlineApiBridge';
 import {
+  normalizeIranianPhone,
+  isValidIranianMobile,
+  validateIranianMobileDetailed,
+  PHONE_VERIFICATION_RULES,
+} from '../utils/phoneUtils';
+import {
   CHAT_ACCEPT_TYPES,
   ChatMessageAttachments,
   PendingAttachmentsPreview,
@@ -38,7 +44,22 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
   // حالت فرم درخواست جدید
   const [isNewRequestMode, setIsNewRequestMode] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState(user?.fullName || '');
-  const [newCustomerContact, setNewCustomerContact] = useState(user?.phone || '');
+  const [newCustomerPhone, setNewCustomerPhone] = useState(user?.phone || '');
+  const [phoneInlineError, setPhoneInlineError] = useState('');
+  const [phoneOperator, setPhoneOperator] = useState<string | null>(null);
+  const [newCustomerTelegramOrBale, setNewCustomerTelegramOrBale] = useState('');
+  const [phoneCheckResult, setPhoneCheckResult] = useState<{
+    exists: boolean;
+    registered?: boolean;
+    source?: 'user' | 'history';
+    user?: { id: string; fullName: string; username: string };
+    lastCustomerName?: string;
+    message?: string;
+    operatorName?: string;
+  } | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const startRecordTriggerRef = useRef<(() => void) | null>(null);
+
   const [newSubject, setNewSubject] = useState(
     initialOrderId ? `پیگیری سفارش ${initialOrderId}` : ''
   );
@@ -128,6 +149,68 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
     }
   };
 
+  const checkPhoneExistence = async (rawPhone: string) => {
+    const val = validateIranianMobileDetailed(rawPhone);
+    if (!val.isValid) {
+      setPhoneCheckResult(null);
+      setPhoneOperator(null);
+      return;
+    }
+
+    setPhoneOperator(val.operatorName || null);
+    setIsCheckingPhone(true);
+    try {
+      const res = await fetch(`/api/users/check-phone?phone=${encodeURIComponent(val.normalized)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPhoneCheckResult(data);
+        if (data.operatorName) {
+          setPhoneOperator(data.operatorName);
+        }
+      } else {
+        setPhoneCheckResult(null);
+      }
+    } catch {
+      setPhoneCheckResult(null);
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  const handlePhoneChange = (val: string) => {
+    const norm = normalizeIranianPhone(val);
+    setNewCustomerPhone(norm);
+    setErrorMsg('');
+    setPhoneCheckResult(null);
+
+    if (!norm) {
+      setPhoneInlineError('');
+      setPhoneOperator(null);
+      return;
+    }
+
+    if (!norm.startsWith('09') && norm.length >= 3) {
+      setPhoneInlineError('شماره همراه باید حتماً با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹). شماره‌های نامعتبر مانند ۱۲۳۴۵۶۷۸۹۰۱۱ پذیرفته نمی‌شوند.');
+      setPhoneOperator(null);
+      return;
+    }
+
+    if (norm.length >= 11) {
+      const detail = validateIranianMobileDetailed(norm);
+      if (!detail.isValid) {
+        setPhoneInlineError(detail.error || 'شماره موبایل وارد شده نامعتبر است.');
+        setPhoneOperator(null);
+      } else {
+        setPhoneInlineError('');
+        setPhoneOperator(detail.operatorName || null);
+        checkPhoneExistence(norm);
+      }
+    } else {
+      setPhoneInlineError('');
+      setPhoneOperator(null);
+    }
+  };
+
   // همگام‌سازی و ریست کامل داده‌ها به محض تغییر کاربر یا باز شدن مدال
   useEffect(() => {
     if (isOpen) {
@@ -135,7 +218,14 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
       setIsNewRequestMode(Boolean(initialOrderId));
       setErrorMsg('');
       setNewCustomerName(user?.fullName || '');
-      setNewCustomerContact(user?.phone || '');
+      const userPhone = user?.phone || '';
+      setNewCustomerPhone(userPhone);
+      setNewCustomerTelegramOrBale('');
+      if (userPhone && userPhone.length >= 10) {
+        checkPhoneExistence(userPhone);
+      } else {
+        setPhoneCheckResult(null);
+      }
       setNewSubject(
         initialOrderId ? `پیگیری سفارش کد ${initialOrderId} - ${initialOrderTitle || ''}` : ''
       );
@@ -267,29 +357,45 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
   // ایجاد درخواست یا گفت‌وگوی جدید به ادمین
   const handleCreateNewRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !newCustomerName ||
-      !newCustomerContact ||
-      (!newMessageText.trim() && pendingAttachments.length === 0) ||
-      isSending
-    ) {
-      setErrorMsg('لطفاً نام، شماره تماس و متن پیام یا فایل پیوست را وارد فرمایید');
+    setErrorMsg('');
+
+    if (!newCustomerName.trim()) {
+      setErrorMsg('لطفاً نام و نام خانوادگی خود را وارد فرمایید');
       return;
     }
 
+    const phoneVal = validateIranianMobileDetailed(newCustomerPhone);
+    if (!phoneVal.isValid) {
+      setPhoneInlineError(phoneVal.error || 'شماره موبایل وارد شده نامعتبر است');
+      setErrorMsg(phoneVal.error || 'شماره تلفن همراه الزامی است و باید یک شماره موبایل معتبر ۱۱ رقمی (مثال: ۰۹۱۲۳۴۵۶۷۸۹) باشد');
+      return;
+    }
+
+    const cleanPhone = phoneVal.normalized;
+
+    if (!newMessageText.trim() && pendingAttachments.length === 0) {
+      setErrorMsg('لطفاً متن پیام، ویس یا فایل پروژه را وارد یا پیوست فرمایید');
+      return;
+    }
+
+    if (isSending) return;
+
     setIsSending(true);
-    setErrorMsg('');
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const fullContact = cleanPhone + (newCustomerTelegramOrBale.trim() ? ` | تلگرام/بله: ${newCustomerTelegramOrBale.trim()}` : '');
 
       const res = await fetch('/api/chat/threads', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           customerName: newCustomerName.trim(),
-          customerContact: newCustomerContact.trim(),
+          customerContact: fullContact,
+          customerPhone: cleanPhone,
+          telegramOrBale: newCustomerTelegramOrBale.trim(),
           subject: newSubject.trim() || 'درخواست جدید خدمات و مشاوره',
           orderId: initialOrderId,
           orderTitle: initialOrderTitle,
@@ -410,14 +516,60 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
           )}
 
           {errorMsg && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
-              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span>{errorMsg}</span>
-            </div>
+            errorMsg.includes('میکروفون') || errorMsg.startsWith('MIC_PERMISSION_BLOCKED:') ? (
+              <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2.5">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-xl shrink-0">🔒</span>
+                  <div className="space-y-1">
+                    <span className="font-bold text-amber-300 block">دسترسی به میکروفون مرورگر نیاز به تایید دارد</span>
+                    <p className="text-[11px] leading-relaxed text-slate-300">
+                      طبق قوانین امنیتی مرورگر، پس از یک‌بار رد شدن دسترسی، پاپ‌آپ خودکار باز نمی‌شود. برای فعال‌سازی:
+                    </p>
+                    <ol className="list-decimal list-inside text-[11px] text-slate-300 space-y-1 pr-1 font-medium">
+                      <li>روی علامت <strong>قفل 🔒</strong> یا <strong>تنظیمات سایت</strong> در نوار آدرس مرورگر کلیک کنید.</li>
+                      <li>گزینه <strong>Microphone (میکروفون)</strong> را روی <strong>Allow (مجاز)</strong> بگذارید.</li>
+                      <li>سپس دکمه زیر را برای صدور مجدد مجوز و ضبط صدا بزنید:</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-500/20">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMsg('');
+                      startRecordTriggerRef.current?.();
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <span>🎙️ تلاش مجدد برای درخواست مجوز میکروفون</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => newReqFileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>📁 یا ارسال فایل صوتی آماده از حافظه</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setErrorMsg('')}
+                    className="text-slate-400 hover:text-white text-xs px-2 py-1 mr-auto"
+                  >
+                    بستن ✕
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>{errorMsg}</span>
+              </div>
+            )
           )}
 
           {isNewRequestMode ? (
@@ -427,6 +579,7 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                 💡 با ثبت پیام زیر، یک رشته گفت‌وگوی مستقیم با مدیریت استودیو ایجاد خواهد شد و پاسخ مدیر سریعاً در همین صفحه و از طریق تماس/پیامک به اطلاع شما می‌رسد.
               </div>
 
+              {/* ردیف اول: نام و شماره موبایل (حتماً الزامی) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
@@ -443,31 +596,149 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    شماره تماس یا آیدی تلگرام <span className="text-cyan-400">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-300">
+                      شماره تلفن همراه <span className="text-rose-400">* (الزامی)</span>
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {isCheckingPhone && (
+                        <span className="text-[10px] text-cyan-400 flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                          در حال بررسی...
+                        </span>
+                      )}
+                      {phoneOperator && !phoneInlineError && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                          ✓ {phoneOperator}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <input
-                    type="text"
+                    type="tel"
                     required
-                    value={newCustomerContact}
-                    onChange={(e) => setNewCustomerContact(e.target.value)}
-                    placeholder="0912... یا @username"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                    dir="ltr"
+                    value={newCustomerPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    onBlur={() => checkPhoneExistence(newCustomerPhone)}
+                    placeholder="09123456789"
+                    maxLength={13}
+                    className={`w-full px-3.5 py-2.5 rounded-xl bg-[#0D1524] border text-sm text-white placeholder-slate-500 outline-none transition-colors font-mono text-right ${
+                      phoneInlineError
+                        ? 'border-rose-500 focus:border-rose-400'
+                        : phoneOperator
+                        ? 'border-emerald-500/60 focus:border-emerald-400'
+                        : 'border-slate-700 focus:border-cyan-400'
+                    }`}
                   />
+                  {phoneInlineError && (
+                    <p className="mt-1 text-[11px] text-rose-300 leading-tight flex items-start gap-1">
+                      <span className="text-rose-400 font-bold shrink-0">✕</span>
+                      <span>{phoneInlineError}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  موضوع درخواست یا کد سفارش
-                </label>
-                <input
-                  type="text"
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                  placeholder="مثال: سوال درباره زمان تحویل، مشاوره تیزر تبلیغاتی..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
-                />
+              {/* یادآوری قانون صحت شماره تلفن همراه */}
+              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] text-slate-400 leading-relaxed flex items-start gap-1.5">
+                <span className="text-amber-400 font-bold shrink-0">⚠️</span>
+                <span>
+                  <strong className="text-slate-300">قانون صحت شماره تماس:</strong> طبق قوانین استودیو، ثبت شماره‌های ساختگی یا اشتباه (مانند ۱۲۳۴۵۶۷۸۹۰۱۱) ممنوع بوده و سفارشات یا گفت‌وگوهای نامعتبر لغو خواهند شد.
+                </span>
+              </div>
+
+              {/* نتیجه بررسی وضعیت شماره تلفن در سامانه */}
+              {phoneCheckResult && (
+                <div>
+                  {phoneCheckResult.registered && phoneCheckResult.user ? (
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/35 text-xs text-amber-200 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400 font-bold text-sm">⚠️</span>
+                          <span>
+                            این شماره متعلق به حساب کاربری ثبت‌شده «<strong className="text-white">{phoneCheckResult.user.fullName}</strong>» در سیستم است.
+                          </span>
+                        </div>
+                        {!user && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              openAuthModal('login');
+                            }}
+                            className="px-2.5 py-1 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] transition-colors shrink-0 whitespace-nowrap"
+                          >
+                            ورود به حساب کاربری
+                          </button>
+                        )}
+                      </div>
+
+                      {!user && newCustomerName.trim() && newCustomerName.trim() !== phoneCheckResult.user.fullName && (
+                        <div className="pt-2 border-t border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300">
+                          <span>نام واردشده با نام ثبت‌شده در این حساب متفاوت است.</span>
+                          <button
+                            type="button"
+                            onClick={() => setNewCustomerName(phoneCheckResult.user!.fullName)}
+                            className="text-cyan-300 hover:text-cyan-200 underline font-bold"
+                          >
+                            تغییر خودکار نام به «{phoneCheckResult.user.fullName}»
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : phoneCheckResult.source === 'history' ? (
+                    <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200 flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-cyan-400">💡</span>
+                        <span>این شماره قبلاً با نام «{phoneCheckResult.lastCustomerName}» برای سفارش یا گفت‌وگو ثبت شده است.</span>
+                      </span>
+                      {!newCustomerName.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => setNewCustomerName(phoneCheckResult.lastCustomerName || '')}
+                          className="text-cyan-300 hover:text-white underline font-bold text-[11px]"
+                        >
+                          استفاده از این نام
+                        </button>
+                      )}
+                    </div>
+                  ) : user && user.phone === newCustomerPhone ? (
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center gap-1.5">
+                      <span>✓ شماره تأییدشده متعلق به حساب کاربری فعلی شما</span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* ردیف دوم: آیدی تلگرام یا بله (دلبخواهی / اختیاری) و موضوع */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    آیدی تلگرام یا بله <span className="text-slate-400 font-normal">(اختیاری / دلبخواهی)</span>
+                  </label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={newCustomerTelegramOrBale}
+                    onChange={(e) => setNewCustomerTelegramOrBale(e.target.value)}
+                    placeholder="username@ یا شماره در بله"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    موضوع درخواست یا کد سفارش <span className="text-slate-400 font-normal">(اختیاری)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newSubject}
+                    onChange={(e) => setNewSubject(e.target.value)}
+                    placeholder="مثال: سوال درباره زمان تحویل، مشاوره تیزر..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0D1524] border border-slate-700 focus:border-cyan-400 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+                  />
+                </div>
               </div>
 
               <div>
@@ -481,6 +752,7 @@ export const UserChatModal: React.FC<UserChatModalProps> = ({
                       disabled={isUploadingMedia}
                       onUploaded={(att) => setPendingAttachments((prev) => [...prev, att])}
                       onError={(msg) => setErrorMsg(msg)}
+                      startTriggerRef={startRecordTriggerRef}
                     />
                     <button
                       type="button"

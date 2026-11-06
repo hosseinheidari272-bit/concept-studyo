@@ -4,6 +4,12 @@ import { formatPersianPrice, toPersianDigits } from '../utils/persianDate';
 import { useAuth } from '../context/AuthContext';
 import { CoinEmblem } from './CoinBadge';
 import { apiFetch as fetch } from '../utils/offlineApiBridge';
+import {
+  normalizeIranianPhone,
+  isValidIranianMobile,
+  validateIranianMobileDetailed,
+  PHONE_VERIFICATION_RULES,
+} from '../utils/phoneUtils';
 
 interface OrderModalProps {
   initialService: ServiceItem | null;
@@ -30,7 +36,21 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     initialService?.id || (services.length > 0 ? services[0].id : '')
   );
   const [fullName, setFullName] = useState(user?.fullName || '');
-  const [contact, setContact] = useState(user?.phone || user?.username || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [phoneInlineError, setPhoneInlineError] = useState('');
+  const [phoneOperator, setPhoneOperator] = useState<string | null>(null);
+  const [telegramOrBale, setTelegramOrBale] = useState('');
+  const [phoneCheckResult, setPhoneCheckResult] = useState<{
+    exists: boolean;
+    registered?: boolean;
+    source?: 'user' | 'history';
+    user?: { id: string; fullName: string; username: string };
+    lastCustomerName?: string;
+    message?: string;
+    operatorName?: string;
+  } | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+
   const [projectDescription, setProjectDescription] = useState('');
   const [urgency, setUrgency] = useState<'normal' | 'express' | 'vip'>('normal');
   const [payWithCoins, setPayWithCoins] = useState<boolean>(false);
@@ -39,10 +59,76 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [trackingCode, setTrackingCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  const checkPhoneExistence = async (rawPhone: string) => {
+    const val = validateIranianMobileDetailed(rawPhone);
+    if (!val.isValid) {
+      setPhoneCheckResult(null);
+      setPhoneOperator(null);
+      return;
+    }
+    setPhoneOperator(val.operatorName || null);
+    setIsCheckingPhone(true);
+    try {
+      const res = await fetch(`/api/users/check-phone?phone=${encodeURIComponent(val.normalized)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPhoneCheckResult(data);
+        if (data.operatorName) {
+          setPhoneOperator(data.operatorName);
+        }
+      } else {
+        setPhoneCheckResult(null);
+      }
+    } catch {
+      setPhoneCheckResult(null);
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  const handlePhoneChange = (val: string) => {
+    const norm = normalizeIranianPhone(val);
+    setPhone(norm);
+    setErrorMessage('');
+    setPhoneCheckResult(null);
+
+    if (!norm) {
+      setPhoneInlineError('');
+      setPhoneOperator(null);
+      return;
+    }
+
+    // بررسی فوری برای شماره‌هایی که با ۰۹ شروع نمی‌شوند (مانند ۱۲۳۴۵۶۷۸۹۰۱۱)
+    if (!norm.startsWith('09') && norm.length >= 3) {
+      setPhoneInlineError('شماره همراه باید با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹). شماره‌های نامعتبر مانند ۱۲۳۴۵۶۷۸۹۰۱۱ پذیرفته نمی‌شوند.');
+      setPhoneOperator(null);
+      return;
+    }
+
+    if (norm.length >= 11) {
+      const detail = validateIranianMobileDetailed(norm);
+      if (!detail.isValid) {
+        setPhoneInlineError(detail.error || 'شماره موبایل وارد شده نامعتبر است.');
+        setPhoneOperator(null);
+      } else {
+        setPhoneInlineError('');
+        setPhoneOperator(detail.operatorName || null);
+        checkPhoneExistence(norm);
+      }
+    } else {
+      setPhoneInlineError('');
+      setPhoneOperator(null);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       if (!fullName) setFullName(user.fullName || '');
-      if (!contact) setContact(user.phone || user.username || '');
+      const userPhone = user.phone || '';
+      if (!phone && userPhone) {
+        setPhone(userPhone);
+        checkPhoneExistence(userPhone);
+      }
     }
   }, [user]);
 
@@ -67,7 +153,21 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !contact.trim()) return;
+    setErrorMessage('');
+
+    if (!fullName.trim()) {
+      setErrorMessage('لطفاً نام و نام خانوادگی خود را وارد فرمایید.');
+      return;
+    }
+
+    const phoneValidation = validateIranianMobileDetailed(phone);
+    if (!phoneValidation.isValid) {
+      setPhoneInlineError(phoneValidation.error || 'شماره موبایل معتبر نیست');
+      setErrorMessage(phoneValidation.error || 'شماره تلفن همراه الزامی است و باید یک شماره موبایل معتبر ۱۱ رقمی (مثال: ۰۹۱۲۳۴۵۶۷۸۹) باشد.');
+      return;
+    }
+
+    const cleanPhone = phoneValidation.normalized;
 
     if (payWithCoins && !user) {
       openAuthModal('login');
@@ -75,7 +175,6 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
 
     setIsSubmitting(true);
-    setErrorMessage('');
 
     try {
       const headers: Record<string, string> = {
@@ -85,6 +184,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         headers['Authorization'] = `Bearer ${token}`;
       }
 
+      const fullContact = cleanPhone + (telegramOrBale.trim() ? ` | تلگرام/بله: ${telegramOrBale.trim()}` : '');
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers,
@@ -92,7 +193,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           serviceId: currentService?.id,
           serviceTitle: currentService?.title,
           customerName: fullName.trim(),
-          customerContact: contact.trim(),
+          customerContact: fullContact,
+          customerPhone: cleanPhone,
+          telegramOrBale: telegramOrBale.trim(),
           urgency,
           calculatedPrice,
           description: projectDescription.trim(),
@@ -236,7 +339,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </select>
               </div>
 
-              {/* ورودی نام و شماره تماس */}
+              {/* ورودی نام و شماره تلفن همراه (الزامی) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <div>
                   <label htmlFor="customer-name" className="block text-xs font-semibold text-slate-300 mb-1">
@@ -254,19 +357,128 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </div>
 
                 <div>
-                  <label htmlFor="customer-contact" className="block text-xs font-semibold text-slate-300 mb-1">
-                    شماره موبایل یا آیدی تلگرام <span className="text-cyan-400">*</span>:
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="customer-phone" className="block text-xs font-semibold text-slate-300">
+                      شماره تلفن همراه <span className="text-rose-400">* (الزامی)</span>:
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      {isCheckingPhone && (
+                        <span className="text-[10px] text-cyan-400 flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                          بررسی...
+                        </span>
+                      )}
+                      {phoneOperator && !phoneInlineError && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                          ✓ {phoneOperator}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <input
-                    id="customer-contact"
-                    type="text"
+                    id="customer-phone"
+                    type="tel"
                     required
-                    placeholder="0912... یا @username"
-                    value={contact}
-                    onChange={(e) => setContact(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                    dir="ltr"
+                    placeholder="09123456789"
+                    value={phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    onBlur={() => checkPhoneExistence(phone)}
+                    maxLength={13}
+                    className={`w-full px-3 py-2 rounded-xl bg-slate-900 border text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition-colors font-mono text-right ${
+                      phoneInlineError
+                        ? 'border-rose-500 focus:border-rose-400'
+                        : phoneOperator
+                        ? 'border-emerald-500/60 focus:border-emerald-400'
+                        : 'border-slate-700 focus:border-cyan-400'
+                    }`}
                   />
+                  {phoneInlineError && (
+                    <p className="mt-1 text-[11px] text-rose-300 leading-tight flex items-start gap-1">
+                      <span className="text-rose-400 font-bold shrink-0">✕</span>
+                      <span>{phoneInlineError}</span>
+                    </p>
+                  )}
                 </div>
+              </div>
+
+              {/* یادآوری قانون صحت شماره تلفن همراه */}
+              <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] text-slate-400 leading-relaxed flex items-start gap-1.5">
+                <span className="text-amber-400 font-bold shrink-0">⚠️</span>
+                <span>
+                  <strong className="text-slate-300">قانون صحت شماره تماس:</strong> لطفاً شماره همراه فعال و واقعی خود را وارد نمایید. طبق قوانین استودیو، شماره‌های اشتباه یا ساختگی (مانند ۱۲۳۴۵۶۷۸۹۰۱۱) به‌صورت خودکار مردود شده و سفارش لغو می‌گردد.
+                </span>
+              </div>
+
+              {/* نتیجه بررسی شماره تلفن در سامانه */}
+              {phoneCheckResult && (
+                <div>
+                  {phoneCheckResult.registered && phoneCheckResult.user ? (
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/35 text-xs text-amber-200 space-y-1.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-amber-400 font-bold">⚠️</span>
+                          <span>
+                            این شماره متعلق به حساب کاربری «<strong className="text-white">{phoneCheckResult.user.fullName}</strong>» است.
+                          </span>
+                        </div>
+                        {!user && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              openAuthModal('login');
+                            }}
+                            className="px-2 py-0.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[10px] transition-colors shrink-0 whitespace-nowrap"
+                          >
+                            ورود به حساب
+                          </button>
+                        )}
+                      </div>
+                      {!user && fullName.trim() && fullName.trim() !== phoneCheckResult.user.fullName && (
+                        <div className="pt-1.5 border-t border-amber-500/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300">
+                          <span>نام واردشده با نام حساب متفاوت است.</span>
+                          <button
+                            type="button"
+                            onClick={() => setFullName(phoneCheckResult.user!.fullName)}
+                            className="text-cyan-300 hover:text-white underline font-bold"
+                          >
+                            تنظیم نام به «{phoneCheckResult.user.fullName}»
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : phoneCheckResult.source === 'history' ? (
+                    <div className="p-2 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-[11px] text-cyan-200 flex flex-wrap items-center justify-between gap-2">
+                      <span>💡 این شماره قبلاً با نام «{phoneCheckResult.lastCustomerName}» در سیستم ثبت شده است.</span>
+                      {!fullName.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => setFullName(phoneCheckResult.lastCustomerName || '')}
+                          className="text-cyan-300 hover:text-white underline font-bold"
+                        >
+                          استفاده از این نام
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* ورودی آیدی تلگرام یا بله (دلبخواهی / اختیاری) */}
+              <div>
+                <label htmlFor="customer-social" className="block text-xs font-semibold text-slate-300 mb-1">
+                  آیدی تلگرام یا بله <span className="text-slate-400 font-normal">(اختیاری / دلبخواهی)</span>:
+                </label>
+                <input
+                  id="customer-social"
+                  type="text"
+                  dir="ltr"
+                  placeholder="username@ یا شماره در بله"
+                  value={telegramOrBale}
+                  onChange={(e) => setTelegramOrBale(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors text-right"
+                />
               </div>
 
               {/* اولویت زمان تحویل */}
@@ -313,6 +525,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                     <span className="block font-bold text-emerald-300 text-xs">VIP مدیریت</span>
                     <span className="text-[10px] opacity-75">+۵۰٪ هزینه</span>
                   </button>
+                </div>
+
+                {/* یادداشت شفافیت تحویل و تعهد کیفیت */}
+                <div className="mt-2 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-[11px] text-emerald-200 leading-relaxed flex items-start gap-1.5">
+                  <span className="text-emerald-400 font-bold shrink-0 mt-0.5">⏱️</span>
+                  <span>
+                    زمان تحویل عادی در حالت نرمال معمولاً <strong>۲ تا ۳ روز کاری</strong> است و بسته به حجم پروژه ممکن است تغییر کند، اما <strong>ما سعی می‌کنیم که در زمان خیلی سریع پروژه رو با حفظ کیفیت عالی به شما تحویل بدیم.</strong>
+                  </span>
                 </div>
               </div>
 
@@ -406,6 +626,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   <div className="flex items-center gap-1.5">
                     <span className="text-cyan-400 font-bold">✓</span>
                     <span>حفظ کامل اسرار تجاری و ایده شما (NDA)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:col-span-2 pt-1 border-t border-slate-800 text-amber-300">
+                    <span className="font-bold">⚠️</span>
+                    <span>قانون احراز تماس: الزام ثبت شماره همراه واقعی (شماره‌های فیک مانند ۱۲۳۴۵۶۷۸۹۰۱۱ موجب لغو خودکار است)</span>
                   </div>
                 </div>
               </div>

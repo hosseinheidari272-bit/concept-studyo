@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import {
+  normalizeIranianPhone,
+  validateIranianMobileDetailed,
+  PHONE_VERIFICATION_RULES,
+} from '../utils/phoneUtils';
+import { apiFetch as fetch } from '../utils/offlineApiBridge';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, authModalMode, closeAuthModal, login, register } = useAuth();
@@ -9,6 +15,15 @@ export const AuthModal: React.FC = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [phoneOperator, setPhoneOperator] = useState<string | null>(null);
+  const [phoneCheckResult, setPhoneCheckResult] = useState<{
+    exists: boolean;
+    registered?: boolean;
+    user?: { fullName: string; username: string };
+    message?: string;
+  } | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,9 +33,62 @@ export const AuthModal: React.FC = () => {
     setActiveTab(authModalMode);
     setErrorMsg('');
     setInfoMsg('');
+    setPhoneError('');
+    setPhoneCheckResult(null);
   }, [authModalMode, isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
+
+  const handlePhoneCheck = async (cleanPhone: string) => {
+    if (!cleanPhone || cleanPhone.length < 11) return;
+    setIsCheckingPhone(true);
+    try {
+      const res = await fetch(`/api/users/check-phone?phone=${encodeURIComponent(cleanPhone)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPhoneCheckResult(data);
+      }
+    } catch {
+      // ignore network errors
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  const handlePhoneInputChange = (raw: string) => {
+    const norm = normalizeIranianPhone(raw);
+    setPhone(norm);
+    setErrorMsg('');
+    setPhoneCheckResult(null);
+
+    if (!norm) {
+      setPhoneError('');
+      setPhoneOperator(null);
+      return;
+    }
+
+    // اگر شماره با ۰۹ شروع نشده باشد (مانند نمونه ۱۲۳۴۵۶۷۸۹۰۱۱)
+    if (!norm.startsWith('09') && norm.length >= 3) {
+      setPhoneError('شماره همراه باید حتماً با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹). شماره‌های نامعتبر مانند ۱۲۳۴۵۶۷۸۹۰۱۱ پذیرفته نمی‌شوند.');
+      setPhoneOperator(null);
+      return;
+    }
+
+    if (norm.length >= 11) {
+      const val = validateIranianMobileDetailed(norm);
+      if (!val.isValid) {
+        setPhoneError(val.error || 'شماره موبایل وارد شده نامعتبر است.');
+        setPhoneOperator(null);
+      } else {
+        setPhoneError('');
+        setPhoneOperator(val.operatorName || null);
+        handlePhoneCheck(norm);
+      }
+    } else {
+      setPhoneError('');
+      setPhoneOperator(null);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +101,6 @@ export const AuthModal: React.FC = () => {
 
     if (!res.success) {
       if (res.notFound) {
-        // انتقال هوشمند به تب ثبت نام طبق نیازمندی کاربر
         setInfoMsg('اطلاعات شما در سیستم وجود ندارد. لطفاً فرم ثبت نام زیر را تکمیل کنید.');
         setActiveTab('register');
       } else {
@@ -47,13 +114,32 @@ export const AuthModal: React.FC = () => {
     setErrorMsg('');
     setInfoMsg('');
 
-    if (!phone || phone.trim().length < 10) {
-      setErrorMsg('شماره موبایل معتبر (مثال: ۰۹۱۲۳۴۵۶۷۸۹) الزامی است');
+    // اعتبارسنجی جامع شماره تلفن همراه با regex
+    const phoneVal = validateIranianMobileDetailed(phone);
+    if (!phoneVal.isValid) {
+      setPhoneError(phoneVal.error || 'شماره موبایل وارد شده نامعتبر است');
+      setErrorMsg(phoneVal.error || 'شماره موبایل معتبر (مثال: ۰۹۱۲۳۴۵۶۷۸۹) الزامی است');
       return;
     }
 
+    // بررسی موجود بودن در پایگاه داده جهت جلوگیری از ثبت تکراری
     setIsSubmitting(true);
-    const res = await register(username, password, fullName, phone);
+    try {
+      const checkRes = await fetch(`/api/users/check-phone?phone=${encodeURIComponent(phoneVal.normalized)}`);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.registered && checkData.user) {
+          setIsSubmitting(false);
+          setPhoneCheckResult(checkData);
+          setErrorMsg(`این شماره موبایل قبلاً برای حساب «${checkData.user.fullName}» ثبت شده است. لطفاً وارد حساب شوید.`);
+          return;
+        }
+      }
+    } catch {
+      // در صورت خطای شبکه ادامه می‌دهیم تا ثبت انجام شود
+    }
+
+    const res = await register(username, password, fullName, phoneVal.normalized);
     setIsSubmitting(false);
 
     if (!res.success) {
@@ -243,17 +329,81 @@ export const AuthModal: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  شماره موبایل (جهت پیگیری اختصاصی و ورود) <span className="text-cyan-400">*</span>:
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-300">
+                    شماره موبایل (جهت پیگیری اختصاصی و ورود) <span className="text-cyan-400">*</span>:
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {isCheckingPhone && (
+                      <span className="text-[10px] text-cyan-400 flex items-center gap-1">
+                        <span className="w-2 h-2 border border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                        استعلام...
+                      </span>
+                    )}
+                    {phoneOperator && !phoneError && !phoneCheckResult?.registered && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        ✓ {phoneOperator}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 <input
                   type="tel"
                   required
+                  dir="ltr"
                   placeholder="09123456789"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+                  onChange={(e) => handlePhoneInputChange(e.target.value)}
+                  onBlur={() => phone.length >= 11 && handlePhoneCheck(phone)}
+                  maxLength={13}
+                  className={`w-full px-3.5 py-2 rounded-xl bg-slate-900 border text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none transition-colors ${
+                    phoneError || (phoneCheckResult?.registered)
+                      ? 'border-rose-500 focus:border-rose-400'
+                      : phoneOperator
+                      ? 'border-emerald-500/60 focus:border-emerald-400'
+                      : 'border-slate-700 focus:border-cyan-400'
+                  }`}
                 />
+
+                {phoneError && (
+                  <p className="mt-1 text-[11px] text-rose-300 leading-tight flex items-start gap-1">
+                    <span className="text-rose-400 font-bold shrink-0">✕</span>
+                    <span>{phoneError}</span>
+                  </p>
+                )}
+
+                {/* اخطار در صورت تکراری بودن شماره در دیتابیس */}
+                {phoneCheckResult?.registered && phoneCheckResult.user && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs text-amber-200 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold">⚠️ این شماره قبلاً در سیستم ثبت شده است!</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUsername(phone);
+                          setActiveTab('login');
+                          setErrorMsg('');
+                          setInfoMsg(`شماره ${phone} قبلاً ثبت شده است. لطفاً رمز عبور خود را وارد کنید.`);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[10px] transition-all whitespace-nowrap"
+                      >
+                        ورود با این شماره ←
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      این شماره متعلق به حساب «<strong className="text-white">{phoneCheckResult.user.fullName}</strong>» است. جهت جلوگیری از تکراری شدن، لطفاً وارد حساب خود شوید.
+                    </p>
+                  </div>
+                )}
+
+                {/* یادآوری قانون صحت شماره تلفن */}
+                <div className="mt-1.5 p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 leading-relaxed flex items-start gap-1.5">
+                  <span className="text-cyan-400 font-bold shrink-0">ℹ️</span>
+                  <span>
+                    <strong>قانون صحت اطلاعات:</strong> ثبت شماره‌های ساختگی یا تست مانند ۱۲۳۴۵۶۷۸۹۰۱۱ ممنوع است. تمام هماهنگی‌ها و ارسال فایل‌ها تنها از طریق پیامک به شماره معتبر انجام می‌شود.
+                  </span>
+                </div>
               </div>
 
               <div>

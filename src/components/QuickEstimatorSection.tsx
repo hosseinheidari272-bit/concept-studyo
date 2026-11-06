@@ -156,6 +156,22 @@ export const QuickEstimatorSection: React.FC<QuickEstimatorSectionProps> = ({
                   </button>
                 ))}
               </div>
+
+              {/* یادداشت شفافیت زمان‌بندی و حفظ کیفیت */}
+              <div
+                className={`mt-2.5 p-3 rounded-xl border text-[11px] leading-relaxed ${
+                  isLight
+                    ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                    : 'bg-emerald-950/25 border-emerald-500/25 text-emerald-200'
+                }`}
+              >
+                <div className="flex items-start gap-1.5">
+                  <span className="text-emerald-400 font-bold shrink-0 mt-0.5">⏱️</span>
+                  <span>
+                    زمان تحویل در حالت عادی معمولاً <strong>۲ تا ۳ روز کاری</strong> برآورد شده و ممکن است بر اساس ابعاد و جزئیات پروژه تغییر کند؛ اما <strong>ما سعی می‌کنیم که در زمان خیلی سریع پروژه رو با حفظ کیفیت عالی به شما تحویل بدیم.</strong>
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* ۳. گزینه‌های تکمیلی اختیاری */}

@@ -6,6 +6,7 @@ import { createServer as createViteServer } from 'vite';
 import { storage, ChatAttachmentRecord } from './server/storage.ts';
 import { hashPassword, verifyPassword, validateRegistration, generateTrackingCode } from './server/authUtils.ts';
 import { classifyAttachmentMime } from './src/utils/chatMediaUtils.ts';
+import { validateIranianMobileDetailed, normalizeIranianPhone } from './src/utils/phoneUtils.ts';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -137,7 +138,8 @@ app.post('/api/auth/register', (req: Request, res: Response) => {
   const username = sanitizeText(req.body.username, 60);
   const password = typeof req.body.password === 'string' ? req.body.password : '';
   const fullName = sanitizeText(req.body.fullName, 100);
-  const phone = sanitizeText(req.body.phone, 30);
+  const rawPhone = sanitizeText(req.body.phone, 30);
+  const phone = normalizeIranianPhone(rawPhone);
 
   const validation = validateRegistration(username, password, fullName, phone);
   if (!validation.valid) {
@@ -269,6 +271,119 @@ app.post('/api/auth/logout', (req: Request, res: Response) => {
     storage.deleteSession(token);
   }
   return res.json({ success: true });
+});
+
+// ۵. بررسی وجود و اعتبارسنجی شماره تلفن در سامانه (جلوگیری از ثبت تکراری یا اشتباه مانند ۱۲۳۴۵۶۷۸۹۰۱۱)
+app.all('/api/users/check-phone', (req: Request, res: Response) => {
+  const rawPhone = (req.method === 'GET' ? req.query.phone : req.body.phone) as string;
+  if (!rawPhone) {
+    return res.status(400).json({ error: 'شماره تلفن ارسال نشده است' });
+  }
+
+  // اعتبارسنجی ساختار با رجکس شماره همراه ایران و رد شماره‌های فیک
+  const validation = validateIranianMobileDetailed(rawPhone);
+  if (!validation.isValid) {
+    return res.json({
+      exists: false,
+      registered: false,
+      isValid: false,
+      error: validation.error,
+      normalized: validation.normalized,
+    });
+  }
+
+  const clean = validation.normalized;
+
+  // ۱. جستجو در کاربران ثبت‌نام‌شده سیستم
+  const allUsers = storage.getAllUsers();
+  const existingUser = allUsers.find((u: { phone?: string; fullName?: string; username?: string; id?: string; role?: string }) => {
+    if (!u.phone) return false;
+    let uClean = normalizeIranianPhone(u.phone);
+    return uClean === clean;
+  });
+
+  if (existingUser) {
+    return res.json({
+      exists: true,
+      registered: true,
+      isValid: true,
+      operatorName: validation.operatorName,
+      source: 'user',
+      user: {
+        id: existingUser.id,
+        fullName: existingUser.fullName,
+        username: existingUser.username,
+        role: existingUser.role,
+      },
+      message: `این شماره متعلق به کاربر ثبت‌شده «${existingUser.fullName}» در سامانه است.`,
+    });
+  }
+
+  // ۲. جستجو در تاریخچه سفارش‌ها
+  const orders = storage.getOrders();
+  const existingOrder = orders.find((o) => o.customerContact && o.customerContact.includes(clean));
+
+  // ۳. جستجو در تاریخچه گفت‌وگوها
+  const threads = storage.getThreads();
+  const existingThread = threads.find((t) => t.customerContact && t.customerContact.includes(clean));
+
+  if (existingOrder || existingThread) {
+    const lastCustomerName = existingOrder?.customerName || existingThread?.customerName || 'مشتری استودیو';
+    return res.json({
+      exists: true,
+      registered: false,
+      isValid: true,
+      operatorName: validation.operatorName,
+      source: 'history',
+      lastCustomerName,
+      message: `این شماره قبلاً با نام «${lastCustomerName}» برای سفارش یا گفت‌وگو در سیستم استفاده شده است.`,
+    });
+  }
+
+  return res.json({
+    exists: false,
+    registered: false,
+    isValid: true,
+    operatorName: validation.operatorName,
+  });
+});
+
+// ۶. بروزرسانی اطلاعات پروفایل و شماره تماس کاربر با اعتبارسنجی فرمت و عدم تکراری بودن
+app.put('/api/users/profile', authMiddleware, (req: Request, res: Response) => {
+  const sessionUser = (req as any).user;
+  const fullName = req.body.fullName ? sanitizeText(req.body.fullName, 100) : undefined;
+  const rawPhone = req.body.phone ? sanitizeText(req.body.phone, 30) : undefined;
+
+  let cleanPhone: string | undefined = undefined;
+  if (rawPhone !== undefined) {
+    const phoneVal = validateIranianMobileDetailed(rawPhone);
+    if (!phoneVal.isValid) {
+      return res.status(400).json({ error: phoneVal.error || 'شماره موبایل وارد شده نامعتبر است' });
+    }
+    cleanPhone = phoneVal.normalized;
+  }
+
+  const result = storage.updateUserProfile(sessionUser.userId, {
+    fullName,
+    phone: cleanPhone,
+  });
+
+  if (!result.success || !result.user) {
+    return res.status(400).json({ error: result.error || 'خطا در بروزرسانی اطلاعات حساب' });
+  }
+
+  return res.json({
+    message: 'اطلاعات حساب کاربری با موفقیت بروزرسانی شد',
+    user: {
+      id: result.user.id,
+      username: result.user.username,
+      fullName: result.user.fullName,
+      phone: result.user.phone,
+      role: result.user.role,
+      coins: storage.getVerifiedUserCoins(result.user),
+      coinEnabled: Boolean(result.user.coinEnabled),
+    },
+  });
 });
 
 // -----------------------------------------------------------------------------

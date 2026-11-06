@@ -518,10 +518,30 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
           <div className="text-left shrink-0">
             <span className={`text-[11px] font-medium block ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-              زمان تحویل:
+              زمان تحویل عادی:
             </span>
             <span className={`text-xs font-bold ${isLight ? 'text-sky-600' : 'text-cyan-300'}`}>
               {service.deliveryTime}
+            </span>
+            <span className={`text-[9px] block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+              (قابل انعطاف و تخمینی)
+            </span>
+          </div>
+        </div>
+
+        {/* تعهد شفافیت زمان و کیفیت استودیو برای تمامی خدمات */}
+        <div
+          className={`mb-3.5 p-2.5 rounded-xl border text-[11px] leading-relaxed transition-all ${
+            isLight
+              ? 'bg-emerald-50/70 border-emerald-200/90 text-emerald-950'
+              : 'bg-emerald-950/25 border-emerald-500/25 text-emerald-200'
+          }`}
+        >
+          <div className="flex items-start gap-1.5">
+            <span className="text-emerald-400 font-bold shrink-0 mt-0.5">⏱️</span>
+            <span>
+              {service.deliveryNote ||
+                'زمان تحویل ممکن است بسته به حجم و جزئیات پروژه تغییر کند، اما ما سعی می‌کنیم که در زمان خیلی سریع پروژه رو با حفظ کیفیت عالی به شما تحویل بدیم.'}
             </span>
           </div>
         </div>

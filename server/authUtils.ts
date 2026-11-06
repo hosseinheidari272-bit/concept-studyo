@@ -26,6 +26,8 @@ export function verifyPassword(password: string, hash: string, salt: string): bo
   }
 }
 
+import { validateIranianMobileDetailed } from '../src/utils/phoneUtils.ts';
+
 /**
  * اعتبارسنجی مقادیر فرم ثبت نام
  */
@@ -44,9 +46,15 @@ export function validateRegistration(
   if (!fullName || fullName.trim().length < 2) {
     return { valid: false, error: 'نام و نام خانوادگی را به‌درستی وارد کنید' };
   }
-  if (!phone || phone.trim().length < 10) {
-    return { valid: false, error: 'شماره موبایل معتبر (مثال: ۰۹۱۲۳۴۵۶۷۸۹) الزامی است' };
+  if (!phone || !phone.trim()) {
+    return { valid: false, error: 'شماره موبایل الزامی است' };
   }
+
+  const phoneValidation = validateIranianMobileDetailed(phone);
+  if (!phoneValidation.isValid) {
+    return { valid: false, error: phoneValidation.error || 'شماره موبایل معتبر نیست' };
+  }
+
   return { valid: true };
 }
 

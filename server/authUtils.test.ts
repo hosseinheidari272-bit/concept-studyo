@@ -22,6 +22,8 @@ test('validateRegistration catches invalid entries', () => {
   assert.equal(validateRegistration('user1', '123', 'Ali', '09123456789').valid, false);
   assert.equal(validateRegistration('user1', '123456', '', '09123456789').valid, false);
   assert.equal(validateRegistration('user1', '123456', 'Ali Reza').valid, false);
+  assert.equal(validateRegistration('user1', '123456', 'Ali Reza', '123456789011').valid, false);
+  assert.equal(validateRegistration('user1', '123456', 'Ali Reza', '09111111111').valid, false);
   assert.equal(validateRegistration('user1', '123456', 'Ali Reza', '09123456789').valid, true);
 });
 

@@ -280,6 +280,7 @@ interface VoiceRecorderButtonProps {
   disabled?: boolean;
   onUploaded: (attachment: ChatAttachment) => void;
   onError: (msg: string) => void;
+  startTriggerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export const VoiceRecorderButton: React.FC<VoiceRecorderButtonProps> = ({
@@ -287,6 +288,7 @@ export const VoiceRecorderButton: React.FC<VoiceRecorderButtonProps> = ({
   disabled,
   onUploaded,
   onError,
+  startTriggerRef,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
@@ -338,12 +340,21 @@ export const VoiceRecorderButton: React.FC<VoiceRecorderButtonProps> = ({
 
   const startRecording = async () => {
     if (disabled || isUploadingVoice) return;
+    
+    // ۱. پاکسازی خطای قبلی برای فراهم کردن امکان درخواست مجدد مجوز
+    onError('');
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      onError('مرورگر شما از ضبط مستقیم صدا پشتیبانی نمی‌کند. می‌توانید فایل صوتی را پیوست کنید.');
+      if (typeof window !== 'undefined' && window.isSecureContext === false) {
+        onError('دسترسی به میکروفون به دلیل سیاست‌های امنیتی مرورگر فقط در بستر امن HTTPS یا localhost مجاز است. لطفاً فایل صوتی را پیوست کنید.');
+      } else {
+        onError('مرورگر شما از ضبط مستقیم صدا پشتیبانی نمی‌کند. می‌توانید فایل صوتی را پیوست کنید.');
+      }
       return;
     }
 
     try {
+      // درخواست مستقیم دسترسی به میکروفون؛ این دستور در صورت مجاز بودن پاپ‌آپ مرورگر را باز می‌کند
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       chunksRef.current = [];
@@ -424,11 +435,27 @@ export const VoiceRecorderButton: React.FC<VoiceRecorderButtonProps> = ({
       timerRef.current = window.setInterval(() => {
         setSeconds((prev) => prev + 1);
       }, 1000);
-    } catch {
+    } catch (err: any) {
       cleanupRecording();
-      onError('دسترسی به میکروفون امکان‌پذیر نیست. لطفاً مجوز میکروفون مرورگر را فعال کنید.');
+      const errName = err?.name || '';
+      console.warn('Microphone access exception:', errName, err);
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+        onError('MIC_PERMISSION_BLOCKED:دسترسی به میکروفون مرورگر مسدود شده است. برای فعال‌سازی روی آیکون قفل 🔒 یا تنظیمات سایت در کنار آدرس‌بار کلیک کنید، دسترسی Microphone را روی Allow (مجاز) قرار دهید و دکمه «تلاش مجدد» را بزنید.');
+      } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+        onError('میکروفونی به سیستم شما متصل نیست یا شناسایی نشد. می‌توانید فایل صوتی را پیوست فرمایید.');
+      } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        onError('میکروفون توسط برنامه دیگری در سیستم در حال استفاده است.');
+      } else {
+        onError('خطا در اتصال به میکروفون. لطفاً دسترسی‌های مرورگر را بررسی نمایید.');
+      }
     }
   };
+
+  useEffect(() => {
+    if (startTriggerRef) {
+      startTriggerRef.current = startRecording;
+    }
+  }, [disabled, isUploadingVoice]);
 
   const stopAndUploadRecording = () => {
     shouldUploadRef.current = true;

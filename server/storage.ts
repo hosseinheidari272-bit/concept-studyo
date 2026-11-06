@@ -687,18 +687,35 @@ class Storage {
 
   public getUserByPhone(phone: string): UserRecord | undefined {
     if (!phone) return undefined;
-    const clean = phone.trim();
-    return this.data.users.find((u) => u.phone && u.phone.trim() === clean);
+    let clean = phone
+      .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+      .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
+      .replace(/[\s\-_()]/g, '');
+    if (clean.startsWith('+98')) clean = '0' + clean.slice(3);
+    else if (clean.startsWith('0098')) clean = '0' + clean.slice(4);
+    else if (clean.startsWith('98') && clean.length === 12) clean = '0' + clean.slice(2);
+    else if (clean.length === 10 && clean.startsWith('9')) clean = '0' + clean;
+
+    return this.data.users.find((u) => {
+      if (!u.phone) return false;
+      let uClean = u.phone
+        .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 1776))
+        .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 1632))
+        .replace(/[\s\-_()]/g, '');
+      if (uClean.startsWith('+98')) uClean = '0' + uClean.slice(3);
+      else if (uClean.startsWith('0098')) uClean = '0' + uClean.slice(4);
+      else if (uClean.startsWith('98') && uClean.length === 12) uClean = '0' + uClean.slice(2);
+      else if (uClean.length === 10 && uClean.startsWith('9')) uClean = '0' + uClean;
+      return uClean === clean;
+    });
   }
 
   public getUserByUsernameOrPhone(identifier: string): UserRecord | undefined {
     if (!identifier) return undefined;
-    const clean = identifier.trim().toLowerCase();
-    return this.data.users.find(
-      (u) =>
-        u.username.toLowerCase() === clean ||
-        (u.phone && u.phone.trim() === identifier.trim())
-    );
+    const cleanLower = identifier.trim().toLowerCase();
+    const userByUsername = this.data.users.find((u) => u.username.toLowerCase() === cleanLower);
+    if (userByUsername) return userByUsername;
+    return this.getUserByPhone(identifier);
   }
 
   public getUserById(id: string): UserRecord | undefined {
@@ -923,6 +940,32 @@ class Storage {
     }
     this.save();
     return true;
+  }
+
+  public updateUserProfile(
+    userId: string,
+    updates: { fullName?: string; phone?: string }
+  ): { success: boolean; user?: UserRecord; error?: string } {
+    const user = this.data.users.find((u) => u.id === userId);
+    if (!user) return { success: false, error: 'کاربر یافت نشد' };
+
+    if (updates.phone) {
+      const existing = this.getUserByPhone(updates.phone);
+      if (existing && existing.id !== userId) {
+        return { success: false, error: 'این شماره موبایل قبلاً برای کاربر دیگری ثبت شده است' };
+      }
+      user.phone = updates.phone;
+    }
+
+    if (updates.fullName && updates.fullName.trim()) {
+      user.fullName = updates.fullName.trim();
+      this.data.sessions.forEach((s) => {
+        if (s.userId === userId) s.fullName = user.fullName;
+      });
+    }
+
+    this.save();
+    return { success: true, user };
   }
 
   // ۲. خدمات و قیمت‌ها

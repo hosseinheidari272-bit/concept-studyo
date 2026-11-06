@@ -223,6 +223,29 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({
         </div>
       </ScrollReveal>
 
+      {/* بنر شفافیت و تعهد زمان‌بندی و کیفیت برای تمام خدمات */}
+      <ScrollReveal delay={0.12} direction="down" distance={15} className="max-w-4xl mx-auto px-4 mb-7">
+        <div
+          className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-center gap-3.5 text-xs leading-relaxed text-center sm:text-right shadow-sm ${
+            isLight
+              ? 'bg-gradient-to-r from-emerald-50 via-teal-50/60 to-sky-50 border-emerald-200 text-slate-800'
+              : 'bg-gradient-to-r from-emerald-950/40 via-teal-950/20 to-slate-900 border-emerald-500/30 text-slate-200'
+          }`}
+        >
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0 text-emerald-300 text-base font-bold shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+            ⏱️
+          </div>
+          <div className="flex-1">
+            <span className="font-black text-emerald-400 block sm:inline ml-1">
+              صداقت در تحویل و زمان‌بندی استودیو:
+            </span>
+            <span>
+              زمان تحویل در حالت عادی معمولاً <strong>۲ تا ۳ روز کاری</strong> (یا متناسب با مقیاس پروژه) برآورد شده و ممکن است بر اساس جزئیات تغییر کند. با این حال <strong>ما سعی می‌کنیم که در زمان خیلی سریع پروژه رو با حفظ کیفیت عالی به شما تحویل بدیم.</strong>
+            </span>
+          </div>
+        </div>
+      </ScrollReveal>
+
       {/* گرید ۳ ستونه کارت‌های خدمات + کارت یازدهم (به اندازه ۲ ستون) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 max-w-7xl mx-auto px-4 sm:px-6 items-stretch">
         {isLoading ? (
