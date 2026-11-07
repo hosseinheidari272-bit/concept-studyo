@@ -79,7 +79,7 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
       customPaymentUrl: '',
       cardToCardEnabled: true,
       cardNumber: '',
-      shebaNumber: '',
+      shebaNumber: 'IR240130100000000057446210',
       cardHolderName: 'مدیریت استودیو دیزاین کانسپت',
       bankName: 'بانک ملت / سامان',
       paymentInstruction:
@@ -993,7 +993,7 @@ export const UserPanelPage: React.FC<UserPanelPageProps> = ({
                                 </span>
                               </div>
                               <span className="text-xs sm:text-sm font-mono font-black tracking-wider text-cyan-200 block truncate group-hover:text-cyan-100">
-                                {gatewayConfig.shebaNumber || 'IR000000000000000000000000'}
+                                {gatewayConfig.shebaNumber || 'IR240130100000000057446210'}
                               </span>
                             </div>
 

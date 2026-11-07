@@ -146,12 +146,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenChat }) => {
         >
           ما لذت می‌بریم و مشتاقیم تا پروژه شما را به اثری تبدیل کنیم که خودتان از{' '}
           <span
-            className={`transition-all duration-200 inline-block ${
+            className={`transition-all duration-300 ease-out inline-block align-baseline ${
               joltWordActive
-                ? 'text-red-500 font-black scale-120 px-1.5 underline decoration-red-500 decoration-2 underline-offset-4'
+                ? 'text-red-500 font-black mx-2 sm:mx-3 px-1.5 underline decoration-red-500 decoration-2 underline-offset-4'
                 : isLight
-                ? 'text-emerald-700 font-extrabold'
-                : 'text-emerald-300 font-extrabold'
+                ? 'text-emerald-700 font-extrabold mx-0.5 px-0'
+                : 'text-emerald-300 font-extrabold mx-0.5 px-0'
             }`}
           >
             شگفتی و قدرتش هیجان‌زده شوید!

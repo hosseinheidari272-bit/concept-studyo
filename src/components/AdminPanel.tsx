@@ -122,7 +122,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     customPaymentUrl: '',
     cardToCardEnabled: true,
     cardNumber: '',
-    shebaNumber: '',
+    shebaNumber: 'IR240130100000000057446210',
     cardHolderName: 'مدیریت استودیو دیزاین کانسپت',
     bankName: 'بانک ملت / سامان',
     paymentInstruction:

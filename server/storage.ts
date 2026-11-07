@@ -306,7 +306,7 @@ export const DEFAULT_PAYMENT_GATEWAY: PaymentGatewaySettingsRecord = {
   customPaymentUrl: '',
   cardToCardEnabled: true,
   cardNumber: '',
-  shebaNumber: '',
+  shebaNumber: 'IR240130100000000057446210',
   cardHolderName: 'مدیریت استودیو دیزاین کانسپت',
   bankName: 'بانک ملت / سامان',
   paymentInstruction: 'پس از واریز وجه، ۴ رقم آخر کارت یا کد پیگیری رسید را در کادر زیر وارد کنید تا کوین بلافاصله به حساب شما اضافه شود.',
@@ -729,6 +729,7 @@ class Storage {
       ...user,
       id,
       coins: initialCoins,
+      coinEnabled: user.coinEnabled ?? false,
       coinSignature: this.computeCoinSignature(id, initialCoins),
       createdAt: new Date().toISOString(),
     };

@@ -13,7 +13,7 @@ import {
 } from '../types';
 import { validateIranianMobileDetailed, normalizeIranianPhone } from './phoneUtils';
 
-const STORAGE_KEY = 'concept_studio_local_db_v1';
+const STORAGE_KEY = 'concept_studio_local_db_v2';
 
 export interface LocalDatabaseSchema {
   services: ServiceItem[];
@@ -95,7 +95,7 @@ const DEFAULT_PAYMENT_GATEWAY: PaymentGatewaySettings = {
   customPaymentUrl: '',
   cardToCardEnabled: true,
   cardNumber: '',
-  shebaNumber: '',
+  shebaNumber: 'IR240130100000000057446210',
   cardHolderName: 'مدیریت استودیو دیزاین کانسپت',
   bankName: 'بانک ملت / سامان',
   paymentInstruction:

@@ -10,55 +10,6 @@
       "createdAt": "2026-10-21T18:59:27.931Z",
       "coins": 0,
       "coinSignature": "a21077fce1229ec90f020885be1d85d2413a3eaf05ae50e7b122333425b170f4"
-    },
-    {
-      "username": "hossein_heidari",
-      "passwordHash": "0eeedf2d58ea19c881be82cbeaebcbda717b9963f50ae41d06d2f168c376378b95567c1ba82470a58f35dc15983f29e165efd73bf209ef015f564046af3ff276",
-      "salt": "a02b1c91dc11df33ec0813ab14ebb1ef",
-      "fullName": "حسین حیدری",
-      "phone": "09123456789",
-      "role": "client",
-      "id": "usr_f963faea",
-      "createdAt": "2026-10-21T19:00:55.153Z",
-      "coins": 0,
-      "coinSignature": "b92f6dadc57a30fc0412c9cf376b48c48fa5ba93bf75a086d20ac4d14a2fb053",
-      "coinEnabled": true
-    },
-    {
-      "username": "mohammad_1792653584359",
-      "passwordHash": "d7f68af10df3e6135470fab2dd149aeb96c71626d1133e4a27bb4fa186061fbb8231b711a82d296fb6ce330e6d02bbb38af0a97707e6e7bf1206692f03a27dea",
-      "salt": "b1ad2519caac6490308c34a1e4210542",
-      "fullName": "محمد محمدی",
-      "phone": "09193280672",
-      "role": "client",
-      "id": "usr_591e91e7",
-      "createdAt": "2026-10-22T07:19:44.420Z",
-      "coins": 0,
-      "coinSignature": "09569d75b6fd5f0c902651943ca9297e114f0926662f036dbbf3faafd206e251"
-    },
-    {
-      "username": "mohammad_1792653607828",
-      "passwordHash": "3410f3549e68eb66a87410b9893bd7f255974d2fa6c9c7e77a77c60b3da306e666a4309b407d2d69f2b15681036a6f7f7f2f2bebf4f00177098fdc7dab4ca0c2",
-      "salt": "06c6bfbb75b3d6510b88a39fc696dc30",
-      "fullName": "محمد محمدی",
-      "phone": "09196187793",
-      "role": "client",
-      "id": "usr_1b9cfd89",
-      "createdAt": "2026-10-22T07:20:08.046Z",
-      "coins": 0,
-      "coinSignature": "897ad3c9a7de5ddede7327aab510905c64ca808e6f6ffdd91b1a8079d6335123"
-    },
-    {
-      "username": "mohammadi_web",
-      "passwordHash": "9e2fa959bc45ee17a48235a4832f09c707345c197585ed6b6d35dad468692c0376b2a311715227fc4df8c96a5163f89570ceaea5f2e7c4ccc2c6b432d4005a93",
-      "salt": "5f586866851c9e28e761de294e7a5a21",
-      "fullName": "محمد محمدی",
-      "phone": "09121112233",
-      "role": "client",
-      "id": "usr_5c478883",
-      "createdAt": "2026-10-22T07:21:32.883Z",
-      "coins": 0,
-      "coinSignature": "73426abf1122d4800ebd30ef46d98bdc53c48d59606fd11a45dd81673c5a9205"
     }
   ],
   "services": [
@@ -398,65 +349,12 @@
       "createdAt": "2026-10-22T07:00:23.295Z"
     },
     {
-      "token": "tok_859bf0df1dcff0aa9078c181f979de8ac469d634defe02e7",
-      "userId": "usr_591e91e7",
-      "username": "mohammad_1792653584359",
-      "fullName": "محمد محمدی",
-      "role": "client",
-      "createdAt": "2026-10-22T07:19:44.421Z"
-    },
-    {
-      "token": "tok_81e75074a9b23b73b7acad0d44e4510962fc066bc1556a22",
-      "userId": "usr_1b9cfd89",
-      "username": "mohammad_1792653607828",
-      "fullName": "محمد محمدی",
-      "phone": "09196187793",
-      "role": "client",
-      "createdAt": "2026-10-22T07:20:08.048Z"
-    },
-    {
-      "token": "tok_432cbb92ec2a5f8075cfc203be4237c0f7f1ee6ac43d29d1",
-      "userId": "usr_1b9cfd89",
-      "username": "mohammad_1792653607828",
-      "fullName": "محمد محمدی",
-      "phone": "09196187793",
-      "role": "client",
-      "createdAt": "2026-10-22T07:20:08.163Z"
-    },
-    {
       "token": "tok_d7d25612c50ff45914ec2293bae7ae67bd4cf7ad3f7ea2d1",
       "userId": "admin-root",
       "username": "admin",
       "fullName": "مدیر ارشد استودیو",
       "role": "admin",
       "createdAt": "2026-10-22T07:20:08.228Z"
-    },
-    {
-      "token": "tok_602b937cd9851d010819b0b3ac96653a85f272bd3ea9baa1",
-      "userId": "usr_5c478883",
-      "username": "mohammadi_web",
-      "fullName": "محمد محمدی",
-      "phone": "09121112233",
-      "role": "client",
-      "createdAt": "2026-10-22T07:21:32.884Z"
-    },
-    {
-      "token": "tok_5aa104b9caaed617908867762742c2e747cbaa9a19f498af",
-      "userId": "usr_5c478883",
-      "username": "mohammadi_web",
-      "fullName": "محمد محمدی",
-      "phone": "09121112233",
-      "role": "client",
-      "createdAt": "2026-10-22T07:21:52.195Z"
-    },
-    {
-      "token": "tok_e98c65842621b7c04242d2ac73a37daa68b779c2d8455e86",
-      "userId": "usr_5c478883",
-      "username": "mohammadi_web",
-      "fullName": "محمد محمدی",
-      "phone": "09121112233",
-      "role": "client",
-      "createdAt": "2026-10-22T07:22:21.689Z"
     },
     {
       "token": "tok_263e39c3f49acce43467f6247a3686503625dac74c25453a",
@@ -765,7 +663,7 @@
       "customPaymentUrl": "",
       "cardToCardEnabled": true,
       "cardNumber": "",
-      "shebaNumber": "",
+      "shebaNumber": "IR240130100000000057446210",
       "cardHolderName": "مدیریت استودیو دیزاین کانسپت",
       "bankName": "بانک ملت / سامان",
       "paymentInstruction": "پس از واریز وجه، ۴ رقم آخر کارت یا کد پیگیری رسید را در کادر زیر وارد کنید تا کوین بلافاصله به حساب شما اضافه شود."
